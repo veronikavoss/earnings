@@ -3,141 +3,463 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>기업 실적 조회</title>
+    <title>기업 실적 분석 도구</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f4f4;
-            color: #333;
+            font-family: 'Noto Sans KR', sans-serif;
         }
-        .container {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        h1 {
-            color: #0056b3;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .input-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        input[type="text"] {
-            width: calc(100% - 22px);
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
+        .chart-container {
+            position: relative;
+            height: 40vh;
             width: 100%;
-            transition: background-color 0.3s ease;
         }
-        button:hover {
-            background-color: #0056b3;
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
         }
-        #results {
-            margin-top: 30px;
-            padding: 20px;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            background-color: #f9f9f9;
-            min-height: 100px;
-            white-space: pre-wrap; /* To preserve line breaks in results */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-        .error {
-            color: red;
-            font-weight: bold;
+        .form-input {
+            @apply w-full px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
+        }
+        .btn {
+            @apply px-6 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-300;
+        }
+        .btn-toggle {
+            @apply px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+        }
+        .btn-toggle.active {
+            @apply bg-blue-600 text-white border-blue-600;
+        }
+        .table-responsive {
+            @apply block w-full overflow-x-auto;
+        }
+        th, td {
+            @apply px-4 py-3 text-sm text-center border-b border-gray-200;
+        }
+        th {
+            @apply font-semibold bg-gray-100;
+        }
+        tbody tr:nth-child(even) {
+            @apply bg-gray-50;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>기업 실적 조회</h1>
-        <div class="input-group">
-            <label for="companyName">기업 이름:</label>
-            <input type="text" id="companyName" placeholder="예: 삼성전자">
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">기업 실적 분석 대시보드</h1>
+            <p class="text-gray-600 mt-2">Financial Modeling Prep API를 사용하여 기업의 재무 데이터를 분석합니다.</p>
+        </header>
+
+        <!-- API Key and Search Input -->
+        <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div class="md:col-span-1">
+                    <label for="apiKeyInput" class="block text-sm font-medium text-gray-700 mb-1">FMP API Key</label>
+                    <input type="password" id="apiKeyInput" class="form-input" placeholder="Your FMP API Key">
+                </div>
+                <div class="md:col-span-1">
+                    <label for="searchInput" class="block text-sm font-medium text-gray-700 mb-1">기업명 또는 티커</label>
+                    <input type="text" id="searchInput" class="form-input" placeholder="예: AAPL 또는 삼성전자">
+                </div>
+                <div class="md:col-span-1">
+                    <button id="searchButton" class="btn w-full">분석하기</button>
+                </div>
+            </div>
+             <p class="text-xs text-gray-500 mt-2">API 키는 <a href="https://site.financialmodelingprep.com/developer/docs" target="_blank" class="text-blue-500 hover:underline">FMP 사이트</a>에서 발급받을 수 있습니다.</p>
         </div>
-        <button onclick="getCompanyPerformance()">조회</button>
-        <div id="results">
-            여기에 기업 실적 정보가 표시됩니다.
+
+        <!-- Loading and Error Messages -->
+        <div id="loader" class="loader hidden"></div>
+        <div id="errorMessage" class="hidden text-center text-red-500 bg-red-100 p-4 rounded-lg max-w-4xl mx-auto"></div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden space-y-8">
+            <!-- Company Profile -->
+            <div id="companyProfile" class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md"></div>
+
+            <!-- Controls for Data Display -->
+            <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center space-x-2">
+                        <span class="font-medium">데이터 종류:</span>
+                        <div class="flex space-x-1">
+                            <button id="annualBtn" class="btn-toggle active">연간</button>
+                            <button id="quarterlyBtn" class="btn-toggle">분기</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 w-full md:w-auto">
+                        <label for="yearsRange" class="font-medium whitespace-nowrap">기간:</label>
+                        <input type="range" id="yearsRange" min="1" max="10" value="10" class="w-full">
+                        <span id="yearsValue" class="font-bold w-12 text-center">10년</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financials Table -->
+            <div class="max-w-4xl mx-auto bg-white p-4 md:p-6 rounded-xl shadow-md">
+                 <h2 class="text-2xl font-bold mb-4 text-center">재무 실적</h2>
+                 <div id="dataTableContainer" class="table-responsive"></div>
+            </div>
+
+            <!-- Financials Chart -->
+            <div class="max-w-4xl mx-auto bg-white p-4 md:p-6 rounded-xl shadow-md">
+                <h2 class="text-2xl font-bold mb-4 text-center">재무 차트</h2>
+                <div class="chart-container">
+                    <canvas id="financialsChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        function getCompanyPerformance() {
-            const companyName = document.getElementById('companyName').value.trim();
-            const resultsDiv = document.getElementById('results');
-            const apiKey = 'yF4kjlrTqI7bphW8VCoq09Ama0jNkDUz'; // 여기에 실제 FMP API 키를 입력하세요.
+        const API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
+        let financialChart = null;
+        let currentTicker = null;
+        let currentView = 'annual';
+        let yearsToShow = 10;
 
-            if (companyName === '') {
-                resultsDiv.innerHTML = '<p class="error">기업 이름을 입력해주세요.</p>';
+        // DOM Elements
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('errorMessage');
+        const resultsSection = document.getElementById('resultsSection');
+        const companyProfile = document.getElementById('companyProfile');
+        const dataTableContainer = document.getElementById('dataTableContainer');
+        const annualBtn = document.getElementById('annualBtn');
+        const quarterlyBtn = document.getElementById('quarterlyBtn');
+        const yearsRange = document.getElementById('yearsRange');
+        const yearsValue = document.getElementById('yearsValue');
+
+        // Event Listeners
+        searchButton.addEventListener('click', handleSearch);
+        searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') handleSearch();
+        });
+        annualBtn.addEventListener('click', () => switchView('annual'));
+        quarterlyBtn.addEventListener('click', () => switchView('quarterly'));
+        yearsRange.addEventListener('input', (e) => {
+            yearsToShow = parseInt(e.target.value);
+            yearsValue.textContent = `${yearsToShow}년`;
+        });
+        yearsRange.addEventListener('change', () => {
+            if (currentTicker) {
+                fetchAndDisplayFinancials();
+            }
+        });
+
+        function switchView(view) {
+            currentView = view;
+            annualBtn.classList.toggle('active', view === 'annual');
+            quarterlyBtn.classList.toggle('active', view === 'quarterly');
+            yearsRange.max = view === 'annual' ? 10 : 5; // 분기는 최대 5년(20분기)으로 제한
+            if (yearsToShow > yearsRange.max) {
+                yearsToShow = yearsRange.max;
+                yearsRange.value = yearsToShow;
+            }
+            yearsValue.textContent = `${yearsToShow}년`;
+            if (currentTicker) {
+                fetchAndDisplayFinancials();
+            }
+        }
+
+        async function handleSearch() {
+            const query = searchInput.value.trim();
+            const apiKey = apiKeyInput.value.trim();
+            if (!apiKey) {
+                showError("FMP API 키를 입력해주세요.");
+                return;
+            }
+            if (!query) {
+                showError("분석할 기업명 또는 티커를 입력해주세요.");
                 return;
             }
 
-            resultsDiv.innerHTML = `<p><strong>${companyName}</strong>의 실시간 주가 정보를 조회 중입니다...</p>`;
+            showLoader(true);
+            hideError();
+            resultsSection.classList.add('hidden');
 
-            // 간단한 기업 이름-심볼 매핑 (실제 서비스에서는 더 복잡한 검색 로직 필요)
-            let symbol = '';
-            if (companyName === '삼성전자') {
-                symbol = '005930.KS'; // 삼성전자 한국 주식 심볼 (예시)
-            } else if (companyName === 'LG전자') {
-                symbol = '066570.KS'; // LG전자 한국 주식 심볼 (예시)
-            } else {
-                // 다른 기업의 경우, 입력된 이름을 심볼로 간주 (정확하지 않을 수 있음)
-                // 실제로는 FMP API의 검색 기능을 사용하거나, 심볼을 직접 입력받는 것이 좋습니다.
-                symbol = companyName;
+            try {
+                // 1. Search for the ticker
+                const searchUrl = `${API_BASE_URL}search-ticker?query=${query}&limit=1&apikey=${apiKey}`;
+                const searchResponse = await fetch(searchUrl);
+                if (!searchResponse.ok) throw new Error(`API 요청 오류: ${searchResponse.statusText}`);
+                const searchData = await searchResponse.json();
+                
+                if (searchData.length === 0) {
+                    throw new Error(`'${query}'에 해당하는 기업을 찾을 수 없습니다.`);
+                }
+                currentTicker = searchData[0].symbol;
+
+                // 2. Fetch profile and financials
+                await fetchAndDisplayProfile();
+                await fetchAndDisplayFinancials();
+                
+                resultsSection.classList.remove('hidden');
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        async function fetchAndDisplayProfile() {
+            const apiKey = apiKeyInput.value.trim();
+            const quoteUrl = `${API_BASE_URL}quote/${currentTicker}?apikey=${apiKey}`;
+            
+            try {
+                const response = await fetch(quoteUrl);
+                if (!response.ok) return; // 프로필 정보는 실패해도 계속 진행
+                const data = await response.json();
+                if (data.length > 0) {
+                    renderProfile(data[0]);
+                }
+            } catch (error) {
+                console.error("프로필 정보 로딩 실패:", error);
+            }
+        }
+        
+        async function fetchAndDisplayFinancials() {
+            showLoader(true);
+            const apiKey = apiKeyInput.value.trim();
+            const limit = currentView === 'annual' ? yearsToShow : yearsToShow * 4;
+            
+            try {
+                // Fetch income statements and historical market cap concurrently
+                const incomeStatementUrl = `${API_BASE_URL}income-statement/${currentTicker}?period=${currentView}&limit=${limit}&apikey=${apiKey}`;
+                const marketCapUrl = `${API_BASE_URL}historical-market-capitalization/${currentTicker}?limit=${limit * 252}&apikey=${apiKey}`; // Fetch more daily data to be safe
+
+                const [incomeResponse, marketCapResponse] = await Promise.all([
+                    fetch(incomeStatementUrl),
+                    fetch(marketCapUrl)
+                ]);
+
+                if (!incomeResponse.ok) throw new Error('재무제표 데이터를 가져올 수 없습니다.');
+                
+                const incomeData = await incomeResponse.json();
+                const marketCapData = marketCapResponse.ok ? await marketCapResponse.json() : [];
+
+                if (incomeData.length === 0) {
+                    throw new Error('재무 데이터가 없습니다.');
+                }
+
+                const processedData = processFinancialData(incomeData, marketCapData);
+                renderTable(processedData);
+                renderChart(processedData);
+
+            } catch (error) {
+                showError(error.message);
+                // Hide table and chart on error
+                dataTableContainer.innerHTML = '';
+                if (financialChart) {
+                    financialChart.destroy();
+                    financialChart = null;
+                }
+            } finally {
+                showLoader(false);
+            }
+        }
+        
+        function processFinancialData(incomeStatements, historicalMarketCaps) {
+            return incomeStatements.map(statement => {
+                const revenue = statement.revenue;
+                const operatingIncome = statement.operatingIncome;
+                const operatingMargin = revenue > 0 ? (operatingIncome / revenue) * 100 : 0;
+
+                // Find the closest market cap data for the period end date
+                const statementDate = new Date(statement.date);
+                let marketCap = null;
+                if(historicalMarketCaps.length > 0) {
+                    const closestMarketCap = historicalMarketCaps.reduce((prev, curr) => {
+                        const prevDate = new Date(prev.date);
+                        const currDate = new Date(curr.date);
+                        return (Math.abs(currDate - statementDate) < Math.abs(prevDate - statementDate) ? curr : prev);
+                    });
+                    marketCap = closestMarketCap.marketCap;
+                }
+
+                const marketCapToOperatingIncome = (operatingIncome > 0 && marketCap) ? marketCap / operatingIncome : null;
+
+                return {
+                    period: statement.date,
+                    revenue,
+                    operatingIncome,
+                    operatingMargin,
+                    marketCapToOperatingIncome
+                };
+            }).reverse(); // 오래된 데이터부터 표시하기 위해 역순 정렬
+        }
+
+        function renderProfile(data) {
+            const change = data.change || 0;
+            const changesPercentage = data.changesPercentage || 0;
+            const changeColor = change >= 0 ? 'text-green-600' : 'text-red-600';
+            const changeIcon = change >= 0 ? '▲' : '▼';
+
+            companyProfile.innerHTML = `
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-bold">${data.name} (${data.symbol})</h2>
+                        <p class="text-gray-500">${data.exchange}</p>
+                    </div>
+                    <div class="text-right space-y-1">
+                        <p class="text-3xl font-bold">${formatNumber(data.price, true)}</p>
+                        <p class="${changeColor} font-semibold">
+                            ${changeIcon} ${formatNumber(change, true)} (${changesPercentage.toFixed(2)}%)
+                        </p>
+                        <p class="text-sm text-gray-600">시가총액: <span class="font-medium">${formatLargeNumber(data.marketCap)}</span></p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderTable(data) {
+            if (data.length === 0) {
+                dataTableContainer.innerHTML = `<p class="text-center text-gray-500">표시할 데이터가 없습니다.</p>`;
+                return;
+            }
+            
+            let tableHTML = `<table class="min-w-full bg-white"><thead><tr>`;
+            const headers = ['기간', '매출', '영업이익', '영업이익률 (%)', '시총/영업이익'];
+            headers.forEach(h => tableHTML += `<th>${h}</th>`);
+            tableHTML += `</tr></thead><tbody>`;
+
+            data.forEach(item => {
+                tableHTML += `<tr>
+                    <td>${item.period}</td>
+                    <td>${formatLargeNumber(item.revenue)}</td>
+                    <td>${formatLargeNumber(item.operatingIncome)}</td>
+                    <td>${item.operatingMargin.toFixed(2)}</td>
+                    <td>${item.marketCapToOperatingIncome ? item.marketCapToOperatingIncome.toFixed(2) : 'N/A'}</td>
+                </tr>`;
+            });
+
+            tableHTML += `</tbody></table>`;
+            dataTableContainer.innerHTML = tableHTML;
+        }
+
+        function renderChart(data) {
+            const ctx = document.getElementById('financialsChart').getContext('2d');
+            
+            if (financialChart) {
+                financialChart.destroy();
             }
 
-            const apiUrl = `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${apiKey}`;
+            if (data.length === 0) return;
 
-            fetch(apiUrl)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data && data.length > 0) {
-                        const companyData = data[0];
-                        const price = companyData.price ? companyData.price.toLocaleString() : 'N/A';
-                        const changesPercentage = companyData.changesPercentage ? companyData.changesPercentage.toFixed(2) : 'N/A';
-                        const marketCap = companyData.marketCap ? (companyData.marketCap / 1000000000000).toFixed(2) + '조 원' : 'N/A'; // 조 단위로 변환
+            const labels = data.map(d => d.period);
+            const revenueData = data.map(d => d.revenue);
+            const operatingIncomeData = data.map(d => d.operatingIncome);
 
-                        resultsDiv.innerHTML = `
-                            <h3>${companyName} 실시간 주가 정보</h3>
-                            <p><strong>현재가:</strong> ${price} 원</p>
-                            <p><strong>등락률:</strong> ${changesPercentage}%</p>
-                            <p><strong>시가총액:</strong> ${marketCap}</p>
-                            <p><em>데이터는 FMP API에서 제공됩니다.</em></p>
-                        `;
-                    } else {
-                        resultsDiv.innerHTML = `<p class="error"><strong>${companyName}</strong>에 대한 주가 정보를 찾을 수 없습니다. 심볼을 확인해주세요.</p>`;
+            financialChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '매출',
+                            data: revenueData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '영업이익',
+                            data: operatingIncomeData,
+                            backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatLargeNumber(value);
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 90,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += formatLargeNumber(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
                     }
-                })
-                .catch(error => {
-                    console.error('Error fetching company performance:', error);
-                    resultsDiv.innerHTML = `<p class="error">주가 정보를 가져오는 중 오류가 발생했습니다: ${error.message}. API 키와 기업 심볼을 확인해주세요.</p>`;
-                });
+                }
+            });
         }
+
+        // Utility Functions
+        function showLoader(show) {
+            loader.classList.toggle('hidden', !show);
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+        
+        function formatNumber(num, isPrice = false) {
+             if (num === null || num === undefined) return 'N/A';
+             const options = isPrice ? { maximumFractionDigits: 2 } : {};
+             return num.toLocaleString('ko-KR', options);
+        }
+
+        function formatLargeNumber(num) {
+            if (num === null || num === undefined) return 'N/A';
+            if (Math.abs(num) >= 1e12) {
+                return (num / 1e12).toFixed(2) + '조';
+            }
+            if (Math.abs(num) >= 1e8) {
+                return (num / 1e8).toFixed(1) + '억';
+            }
+            if (Math.abs(num) >= 1e4) {
+                return (num / 1e4).toFixed(0) + '만';
+            }
+            return num.toLocaleString();
+        }
+
     </script>
 </body>
 </html>
