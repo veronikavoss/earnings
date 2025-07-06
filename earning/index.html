@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기업 실적 조회</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #0056b3;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #results {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            min-height: 100px;
+            white-space: pre-wrap; /* To preserve line breaks in results */
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>기업 실적 조회</h1>
+        <div class="input-group">
+            <label for="companyName">기업 이름:</label>
+            <input type="text" id="companyName" placeholder="예: 삼성전자">
+        </div>
+        <button onclick="getCompanyPerformance()">조회</button>
+        <div id="results">
+            여기에 기업 실적 정보가 표시됩니다.
+        </div>
+    </div>
+
+    <script>
+        function getCompanyPerformance() {
+            const companyName = document.getElementById('companyName').value.trim();
+            const resultsDiv = document.getElementById('results');
+            const apiKey = 'yF4kjlrTqI7bphW8VCoq09Ama0jNkDUz'; // 여기에 실제 FMP API 키를 입력하세요.
+
+            if (companyName === '') {
+                resultsDiv.innerHTML = '<p class="error">기업 이름을 입력해주세요.</p>';
+                return;
+            }
+
+            resultsDiv.innerHTML = `<p><strong>${companyName}</strong>의 실시간 주가 정보를 조회 중입니다...</p>`;
+
+            // 간단한 기업 이름-심볼 매핑 (실제 서비스에서는 더 복잡한 검색 로직 필요)
+            let symbol = '';
+            if (companyName === '삼성전자') {
+                symbol = '005930.KS'; // 삼성전자 한국 주식 심볼 (예시)
+            } else if (companyName === 'LG전자') {
+                symbol = '066570.KS'; // LG전자 한국 주식 심볼 (예시)
+            } else {
+                // 다른 기업의 경우, 입력된 이름을 심볼로 간주 (정확하지 않을 수 있음)
+                // 실제로는 FMP API의 검색 기능을 사용하거나, 심볼을 직접 입력받는 것이 좋습니다.
+                symbol = companyName;
+            }
+
+            const apiUrl = `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${apiKey}`;
+
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.length > 0) {
+                        const companyData = data[0];
+                        const price = companyData.price ? companyData.price.toLocaleString() : 'N/A';
+                        const changesPercentage = companyData.changesPercentage ? companyData.changesPercentage.toFixed(2) : 'N/A';
+                        const marketCap = companyData.marketCap ? (companyData.marketCap / 1000000000000).toFixed(2) + '조 원' : 'N/A'; // 조 단위로 변환
+
+                        resultsDiv.innerHTML = `
+                            <h3>${companyName} 실시간 주가 정보</h3>
+                            <p><strong>현재가:</strong> ${price} 원</p>
+                            <p><strong>등락률:</strong> ${changesPercentage}%</p>
+                            <p><strong>시가총액:</strong> ${marketCap}</p>
+                            <p><em>데이터는 FMP API에서 제공됩니다.</em></p>
+                        `;
+                    } else {
+                        resultsDiv.innerHTML = `<p class="error"><strong>${companyName}</strong>에 대한 주가 정보를 찾을 수 없습니다. 심볼을 확인해주세요.</p>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching company performance:', error);
+                    resultsDiv.innerHTML = `<p class="error">주가 정보를 가져오는 중 오류가 발생했습니다: ${error.message}. API 키와 기업 심볼을 확인해주세요.</p>`;
+                });
+        }
+    </script>
+</body>
+</html>
