@@ -66,10 +66,7 @@
         <!-- API Key and Search Input -->
         <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md mb-8">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                <div class="md:col-span-1">
-                    <label for="apiKeyInput" class="block text-sm font-medium text-gray-700 mb-1">FMP API Key</label>
-                    <input type="password" id="apiKeyInput" class="form-input" placeholder="Your FMP API Key">
-                </div>
+                
                 <div class="md:col-span-1">
                     <label for="searchInput" class="block text-sm font-medium text-gray-700 mb-1">기업명 또는 티커</label>
                     <input type="text" id="searchInput" class="form-input" placeholder="예: AAPL 또는 삼성전자">
@@ -78,7 +75,7 @@
                     <button id="searchButton" class="btn w-full">분석하기</button>
                 </div>
             </div>
-             <p class="text-xs text-gray-500 mt-2">API 키는 <a href="https://site.financialmodelingprep.com/developer/docs" target="_blank" class="text-blue-500 hover:underline">FMP 사이트</a>에서 발급받을 수 있습니다.</p>
+             
         </div>
 
         <!-- Loading and Error Messages -->
@@ -132,7 +129,7 @@
         let yearsToShow = 10;
 
         // DOM Elements
-        const apiKeyInput = document.getElementById('apiKeyInput');
+        const FMP_API_KEY = 'yF4kjlrTqI7bphW8VCoq09Ama0jNkDUz'; // 여기에 실제 API 키를 입력하세요.
         const searchInput = document.getElementById('searchInput');
         const searchButton = document.getElementById('searchButton');
         const loader = document.getElementById('loader');
@@ -179,7 +176,7 @@
 
         async function handleSearch() {
             const query = searchInput.value.trim();
-            const apiKey = apiKeyInput.value.trim();
+            const apiKey = FMP_API_KEY;
             if (!apiKey) {
                 showError("FMP API 키를 입력해주세요.");
                 return;
@@ -219,7 +216,7 @@
         }
 
         async function fetchAndDisplayProfile() {
-            const apiKey = apiKeyInput.value.trim();
+            const apiKey = FMP_API_KEY;
             const quoteUrl = `${API_BASE_URL}quote/${currentTicker}?apikey=${apiKey}`;
             
             try {
@@ -236,7 +233,7 @@
         
         async function fetchAndDisplayFinancials() {
             showLoader(true);
-            const apiKey = apiKeyInput.value.trim();
+            const apiKey = FMP_API_KEY;
             const limit = currentView === 'annual' ? yearsToShow : yearsToShow * 4;
             
             try {
