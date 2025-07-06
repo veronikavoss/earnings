@@ -39,7 +39,13 @@
             @apply px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
         }
         .btn-toggle.active {
-            @apply bg-blue-600 text-white border-blue-600;
+            @apply bg-blue-600 text-white border-blue-600 shadow-md;
+        }
+        .btn-toggle:not(.active):hover {
+            @apply bg-gray-200;
+        }
+        .btn-toggle:focus {
+            @apply ring-2 ring-offset-2 ring-blue-500;
         }
         .table-responsive {
             @apply block w-full overflow-x-auto;
@@ -126,8 +132,8 @@
         const AV_API_BASE_URL = 'https://www.alphavantage.co/query';
         let financialChart = null;
         let currentTicker = null;
-        let currentView = 'quarterly'; 
-        let yearsToShow = 5; 
+        let currentView = 'annual'; 
+        let yearsToShow = 10; 
 
         // DOM Elements
         const FMP_API_KEY = 'yF4kjlrTqI7bphW8VCoq09Ama0jNkDUz'; // 여기에 실제 FMP API 키를 입력하세요.
