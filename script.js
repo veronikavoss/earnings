@@ -20,7 +20,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
         const dataTableContainer = document.getElementById('dataTableContainer');
         const annualBtn = document.getElementById('annualBtn');
         const quarterlyBtn = document.getElementById('quarterlyBtn');
-        const estimatesBtn = document.getElementById('estimatesBtn');
+        
         const yearsRange = document.getElementById('yearsRange');
         const yearsValue = document.getElementById('yearsValue');
 
@@ -35,7 +35,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
         searchInput.addEventListener('input', debounce(handleAutocomplete, 300));
         annualBtn.addEventListener('click', () => switchView('annual'));
         quarterlyBtn.addEventListener('click', () => switchView('quarterly'));
-        estimatesBtn.addEventListener('click', () => switchView('estimates'));
+        
         yearsRange.addEventListener('input', (e) => {
             yearsToShow = parseInt(e.target.value);
             yearsValue.textContent = `${yearsToShow}년`;
@@ -50,19 +50,13 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
             currentView = view;
             annualBtn.classList.toggle('active', view === 'annual');
             quarterlyBtn.classList.toggle('active', view === 'quarterly');
-            estimatesBtn.classList.toggle('active', view === 'estimates');
-            if (view === 'estimates') {
-                yearsRange.disabled = true;
-                yearsValue.textContent = 'N/A';
-            } else {
-                yearsRange.disabled = false;
-                yearsRange.max = view === 'annual' ? 10 : 5; // 분기는 최대 5년(20분기)으로 제한
-                if (yearsToShow > yearsRange.max) {
-                    yearsToShow = yearsRange.max;
-                    yearsRange.value = yearsToShow;
-                }
-                yearsValue.textContent = `${yearsToShow}년`;
+            yearsRange.disabled = false;
+            yearsRange.max = view === 'annual' ? 10 : 5; // 분기는 최대 5년(20분기)으로 제한
+            if (yearsToShow > yearsRange.max) {
+                yearsToShow = yearsRange.max;
+                yearsRange.value = yearsToShow;
             }
+            yearsValue.textContent = `${yearsToShow}년`;
             if (currentTicker) {
                 fetchAndDisplayFinancials();
             }
@@ -226,21 +220,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                 } else if (currentView === 'quarterly' && incomeDataRaw["quarterlyReports"]) {
                     incomeStatements = incomeDataRaw["quarterlyReports"];
                     console.log('fetchAndDisplayFinancials: 분기 보고서 데이터:', incomeStatements);
-                } else if (currentView === 'estimates') {
-                    const estimatesUrl = `${FMP_API_BASE_URL}analyst-estimates/${currentTicker}?limit=10&apikey=${fmpApiKey}`;
-                    console.log('fetchAndDisplayFinancials: FMP 예상 실적 URL:', estimatesUrl);
-                    const estimatesResponse = await fetch(estimatesUrl);
-                    if (!estimatesResponse.ok) throw new Error(`예상 실적 데이터를 가져올 수 없습니다: ${estimatesResponse.statusText}`);
-                    const estimatesData = await estimatesResponse.json();
-                    console.log('fetchAndDisplayFinancials: FMP 예상 실적 응답:', estimatesData);
-                    if (estimatesData.length === 0) {
-                        throw new Error('예상 실적 데이터가 없습니다.');
-                    }
-                    const processedEstimates = processEstimatesData(estimatesData);
-                    renderTable(processedEstimates);
-                    renderChart(processedEstimates);
-                    return; // 예상 실적은 별도 처리 후 종료
-                }
+                
 
                 if (incomeStatements.length === 0) {
                     throw new Error('재무 데이터가 없습니다.');
@@ -357,17 +337,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
 
         
         
-        function processEstimatesData(estimates) {
-            return estimates.slice(0, yearsToShow * 4).reverse().map(estimate => {
-                return {
-                    period: `${estimate.date} (E)`,
-                    revenue: estimate.estimatedRevenueAvg,
-                    operatingIncome: estimate.estimatedEbitdaAvg, // EBITDA를 영업이익 대용으로 사용
-                    operatingMargin: (estimate.estimatedRevenueAvg > 0) ? (estimate.estimatedEbitdaAvg / estimate.estimatedRevenueAvg) * 100 : 0,
-                    marketCapToOperatingIncome: null // 예상 데이터에는 시총 정보 없음
-                };
-            });
-        }
+        
 
         function renderTable(data) {
             if (data.length === 0) {
