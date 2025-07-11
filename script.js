@@ -220,6 +220,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                 } else if (currentView === 'quarterly' && incomeDataRaw["quarterlyReports"]) {
                     incomeStatements = incomeDataRaw["quarterlyReports"];
                     console.log('fetchAndDisplayFinancials: 분기 보고서 데이터:', incomeStatements);
+                }
                 
 
                 if (incomeStatements.length === 0) {
