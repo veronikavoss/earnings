@@ -57,8 +57,8 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                 yearsToShow = 10;
                 yearsRange.max = 10;
             } else { // quarterly
-                yearsToShow = 5;
-                yearsRange.max = 5;
+                yearsToShow = 3;
+                yearsRange.max = 10;
             }
             
             yearsRange.value = yearsToShow;
