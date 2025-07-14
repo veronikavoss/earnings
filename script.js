@@ -9,6 +9,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
 
         // DOM Elements
         const FMP_API_KEY = 'yF4kjlrTqI7bphW8VCoq09Ama0jNkDUz'; // 여기에 실제 FMP API 키를 입력하세요.
+        const SECOND_FMP_API_KEY = 'dxY7zyF2buPgzkurZfDd94y1Z2o4gNpb'; // 여기에 실제 FMP API 키를 입력하세요.
         const AV_API_KEY = 'IOLM32O12PSE4LDJ'; // 여기에 실제 Alpha Vantage API 키를 입력하세요.
         const SECOND_AV_API_KEY = 'Q3H5NC59JKHFVB7X'; // New second Alpha Vantage API key
         const searchInput = document.getElementById('searchInput');
@@ -51,12 +52,18 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
             annualBtn.classList.toggle('active', view === 'annual');
             quarterlyBtn.classList.toggle('active', view === 'quarterly');
             yearsRange.disabled = false;
-            yearsRange.max = view === 'annual' ? 10 : 5; // 분기는 최대 5년(20분기)으로 제한
-            if (yearsToShow > yearsRange.max) {
-                yearsToShow = yearsRange.max;
-                yearsRange.value = yearsToShow;
+
+            if (view === 'annual') {
+                yearsToShow = 10;
+                yearsRange.max = 10;
+            } else { // quarterly
+                yearsToShow = 5;
+                yearsRange.max = 5;
             }
+            
+            yearsRange.value = yearsToShow;
             yearsValue.textContent = `${yearsToShow}년`;
+
             if (currentTicker) {
                 fetchAndDisplayFinancials();
             }
@@ -165,37 +172,49 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
             `;
         }
         
+        async function fetchFromAlphaVantage(apiFunction, symbol) {
+            const primaryKey = AV_API_KEY;
+            const secondaryKey = SECOND_AV_API_KEY;
+
+            // 1. Try with primary key
+            let url = `${AV_API_BASE_URL}?function=${apiFunction}&symbol=${symbol}&apikey=${primaryKey}`;
+            console.log(`Fetching from Alpha Vantage (Primary): ${url}`);
+            let response = await fetch(url);
+            let data = await response.json();
+
+            // Check for failure (network error or API error message like "Note" or "Error Message")
+            if (!response.ok || data["Error Message"] || data["Note"]) {
+                console.warn('Primary AV API call failed. Trying secondary key.');
+                console.log('Failed response data (Primary):', data);
+
+                // 2. Try with secondary key
+                url = `${AV_API_BASE_URL}?function=${apiFunction}&symbol=${symbol}&apikey=${secondaryKey}`;
+                console.log(`Fetching from Alpha Vantage (Secondary): ${url}`);
+                response = await fetch(url);
+                data = await response.json();
+
+                // Check for failure on secondary key
+                if (!response.ok || data["Error Message"] || data["Note"]) {
+                    console.error('Secondary AV API call also failed.');
+                    const errorMessage = (data && (data["Error Message"] || data["Note"])) || `HTTP status ${response.status}`;
+                    throw new Error(`재무제표 데이터를 가져올 수 없습니다. Alpha Vantage API 호출에 실패했습니다: ${errorMessage}`);
+                }
+            }
+
+            return data;
+        }
+
         async function fetchAndDisplayFinancials() {
             showLoader(true);
-            const avApiKey = AV_API_KEY;
             const fmpApiKey = FMP_API_KEY;
-            const secondAvApiKey = SECOND_AV_API_KEY; // Get the second API key
-
+            
             let incomeStatements = [];
             let incomeDataRaw = null;
             let marketCapDataRaw = [];
 
             try {
-                // Try with primary AV API key
-                let incomeStatementUrl = `${AV_API_BASE_URL}?function=INCOME_STATEMENT&symbol=${currentTicker}&apikey=${avApiKey}`;
-                console.log('fetchAndDisplayFinancials: Alpha Vantage 재무제표 URL (Primary):', incomeStatementUrl);
-                let incomeResponse = await fetch(incomeStatementUrl);
-                
-                if (!incomeResponse.ok) {
-                    console.warn('fetchAndDisplayFinancials: Primary AV API call failed, trying secondary...');
-                    // Try with secondary AV API key
-                    incomeStatementUrl = `${AV_API_BASE_URL}?function=INCOME_STATEMENT&symbol=${currentTicker}&apikey=${secondAvApiKey}`;
-                    console.log('fetchAndDisplayFinancials: Alpha Vantage 재무제표 URL (Secondary):', incomeStatementUrl);
-                    incomeResponse = await fetch(incomeStatementUrl);
-                }
-
-                if (!incomeResponse.ok) throw new Error(`재무제표 데이터를 가져올 수 없습니다: ${incomeResponse.statusText}`);
-                
-                incomeDataRaw = await incomeResponse.json();
-
-                if (incomeDataRaw["Error Message"] || incomeDataRaw["Note"]) {
-                    throw new Error(`Alpha Vantage API 응답 오류: ${incomeDataRaw["Error Message"] || incomeDataRaw["Note"]}`);
-                }
+                // Fetch income statement with fallback logic
+                incomeDataRaw = await fetchFromAlphaVantage('INCOME_STATEMENT', currentTicker);
 
                 // Determine fiscal year end month from the latest annual report
                 if (incomeDataRaw.annualReports && incomeDataRaw.annualReports.length > 0) {
@@ -224,6 +243,10 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                 
 
                 if (incomeStatements.length === 0) {
+                    // Check if there's a note from API (e.g. "Thank you for using Alpha Vantage!...")
+                    if (incomeDataRaw && incomeDataRaw["Note"]) {
+                         throw new Error(`Alpha Vantage API 응답: ${incomeDataRaw["Note"]}`);
+                    }
                     throw new Error('재무 데이터가 없습니다.');
                 }
 
