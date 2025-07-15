@@ -274,6 +274,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
             const processed = incomeStatements.slice(0, yearsToShow * (currentView === 'annual' ? 1 : 4)).reverse().map((statement, index, arr) => {
                 const revenue = parseFloat(statement.totalRevenue);
                 const operatingIncome = parseFloat(statement.operatingIncome);
+                const netIncome = parseFloat(statement.netIncome);
                 const operatingMargin = revenue > 0 ? (operatingIncome / revenue) * 100 : 0;
 
                 // Find the closest market cap data for the period end date
@@ -289,15 +290,18 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                 }
 
                 const marketCapToOperatingIncome = (operatingIncome > 0 && marketCap) ? marketCap / operatingIncome : null;
+                const marketCapToNetIncome = (netIncome > 0 && marketCap) ? marketCap / netIncome : null;
 
                 // Calculate YoY change
                 let revenueYoYChange = null;
                 let operatingIncomeYoYChange = null;
+                let netIncomeYoYChange = null;
 
                 if (currentView === 'annual' && index > 0) {
                     const prevStatement = arr[index - 1];
                     const prevRevenue = parseFloat(prevStatement.totalRevenue);
                     const prevOperatingIncome = parseFloat(prevStatement.operatingIncome);
+                    const prevNetIncome = parseFloat(prevStatement.netIncome);
 
                     if (prevRevenue !== 0) {
                         revenueYoYChange = ((revenue - prevRevenue) / prevRevenue) * 100;
@@ -305,16 +309,23 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                     if (prevOperatingIncome !== 0) {
                         operatingIncomeYoYChange = ((operatingIncome - prevOperatingIncome) / prevOperatingIncome) * 100;
                     }
+                    if (prevNetIncome !== 0) {
+                        netIncomeYoYChange = ((netIncome - prevNetIncome) / prevNetIncome) * 100;
+                    }
                 } else if (currentView === 'quarterly' && index >= 4) { // For quarterly, compare with 4 periods ago
                     const prevYearSameQuarterStatement = arr[index - 4];
                     const prevYearSameQuarterRevenue = parseFloat(prevYearSameQuarterStatement.totalRevenue);
                     const prevYearSameQuarterOperatingIncome = parseFloat(prevYearSameQuarterStatement.operatingIncome);
+                    const prevYearSameQuarterNetIncome = parseFloat(prevYearSameQuarterStatement.netIncome);
 
                     if (prevYearSameQuarterRevenue !== 0) {
                         revenueYoYChange = ((revenue - prevYearSameQuarterRevenue) / prevYearSameQuarterRevenue) * 100;
                     }
                     if (prevYearSameQuarterOperatingIncome !== 0) {
                         operatingIncomeYoYChange = ((operatingIncome - prevYearSameQuarterOperatingIncome) / prevYearSameQuarterOperatingIncome) * 100;
+                    }
+                    if (prevYearSameQuarterNetIncome !== 0) {
+                        netIncomeYoYChange = ((netIncome - prevYearSameQuarterNetIncome) / prevYearSameQuarterNetIncome) * 100;
                     }
                 }
 
@@ -349,10 +360,13 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                     period: statement.fiscalDateEnding,
                     revenue,
                     operatingIncome,
+                    netIncome,
                     operatingMargin,
                     marketCapToOperatingIncome,
+                    marketCapToNetIncome,
                     revenueYoYChange,
                     operatingIncomeYoYChange,
+                    netIncomeYoYChange,
                     fiscalQuarter // Add fiscalQuarter to the returned object
                 };
             });
@@ -370,7 +384,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
             }
             
             let tableHTML = `<table class="min-w-full bg-white"><thead><tr>`;
-            const headers = ['기간', '매출', '영업이익', '영업이익률 (%)', '시총/영업이익'];
+            const headers = ['기간', '매출', '영업이익', '순이익', '영업이익률 (%)', '시총/영업이익', '시총/순이익'];
             headers.forEach(h => tableHTML += `<th>${h}</th>`);
             tableHTML += `</tr></thead><tbody>`;
 
@@ -379,6 +393,8 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                     `<span class="${item.revenueYoYChange >= 0 ? 'text-red-600' : 'text-blue-600'}"> (${item.revenueYoYChange >= 0 ? '▲' : '▼'}${item.revenueYoYChange.toFixed(1)}%)</span>` : '';
                 const operatingIncomeYoY = item.operatingIncomeYoYChange !== null ? 
                     `<span class="${item.operatingIncomeYoYChange >= 0 ? 'text-red-600' : 'text-blue-600'}"> (${item.operatingIncomeYoYChange >= 0 ? '▲' : '▼'}${item.operatingIncomeYoYChange.toFixed(1)}%)</span>` : '';
+                const netIncomeYoY = item.netIncomeYoYChange !== null ?
+                    `<span class="${item.netIncomeYoYChange >= 0 ? 'text-red-600' : 'text-blue-600'}"> (${item.netIncomeYoYChange >= 0 ? '▲' : '▼'}${item.netIncomeYoYChange.toFixed(1)}%)</span>` : '';
 
                 let periodDisplay = item.period;
                 if (currentView === 'quarterly' && item.fiscalQuarter !== null) {
@@ -390,8 +406,10 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                     <td>${periodDisplay}</td>
                     <td>${formatLargeNumber(item.revenue)}${revenueYoY}</td>
                     <td>${formatLargeNumber(item.operatingIncome)}${operatingIncomeYoY}</td>
+                    <td>${formatLargeNumber(item.netIncome)}${netIncomeYoY}</td>
                     <td>${item.operatingMargin.toFixed(2)}</td>
                     <td>${item.marketCapToOperatingIncome ? item.marketCapToOperatingIncome.toFixed(2) : 'N/A'}</td>
+                    <td>${item.marketCapToNetIncome ? item.marketCapToNetIncome.toFixed(2) : 'N/A'}</td>
                 </tr>`;
             });
 
@@ -411,6 +429,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
             const labels = data.map(d => d.period);
             const revenueData = data.map(d => d.revenue);
             const operatingIncomeData = data.map(d => d.operatingIncome);
+            const netIncomeData = data.map(d => d.netIncome);
 
             financialChart = new Chart(ctx, {
                 type: 'bar',
@@ -429,6 +448,13 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                             data: operatingIncomeData,
                             backgroundColor: 'rgba(255, 99, 132, 0.6)',
                             borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '순이익',
+                            data: netIncomeData,
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
                             borderWidth: 1
                         }
                     ]
