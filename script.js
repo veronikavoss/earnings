@@ -210,7 +210,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
             
             let incomeStatements = [];
             let incomeDataRaw = null;
-            let marketCapDataRaw = [];
+            let latestMarketCap = null; // 변경: marketCapDataRaw -> latestMarketCap
 
             try {
                 // Fetch income statement with fallback logic
@@ -227,11 +227,17 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                     console.log(`No annual reports found, defaulting fiscal year end month to 12.`);
                 }
 
-                // Fetch market cap data (always with FMP)
-                const marketCapUrl = `${FMP_API_BASE_URL}historical-market-capitalization/${currentTicker}?limit=1000&apikey=${fmpApiKey}`;
-                console.log('fetchAndDisplayFinancials: FMP 시가총액 URL:', marketCapUrl);
-                const marketCapResponse = await fetch(marketCapUrl);
-                marketCapDataRaw = marketCapResponse.ok ? await marketCapResponse.json() : [];
+                // Fetch the LATEST market cap using the quote endpoint
+                const quoteUrl = `${FMP_API_BASE_URL}quote/${currentTicker}?apikey=${fmpApiKey}`;
+                console.log('fetchAndDisplayFinancials: FMP 최신 시가총액 URL:', quoteUrl);
+                const quoteResponse = await fetch(quoteUrl);
+                if (quoteResponse.ok) {
+                    const quoteData = await quoteResponse.json();
+                    if (quoteData.length > 0) {
+                        latestMarketCap = quoteData[0].marketCap;
+                        console.log('fetchAndDisplayFinancials: 최신 시가총액:', latestMarketCap);
+                    }
+                }
 
                 if (currentView === 'annual' && incomeDataRaw["annualReports"]) {
                     incomeStatements = incomeDataRaw["annualReports"];
@@ -250,7 +256,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                     throw new Error('재무 데이터가 없습니다.');
                 }
 
-                const processedData = processFinancialData(incomeStatements, marketCapDataRaw);
+                const processedData = processFinancialData(incomeStatements, latestMarketCap); // 변경: latestMarketCap 전달
                 console.log('fetchAndDisplayFinancials: 처리된 재무 데이터:', processedData);
                 renderTable(processedData);
                 renderChart(processedData);
@@ -269,7 +275,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
             }
         }
         
-        function processFinancialData(incomeStatements, historicalMarketCaps) {
+        function processFinancialData(incomeStatements, marketCap) { // 변경: historicalMarketCaps -> marketCap
             // Alpha Vantage 데이터는 최신순으로 정렬되어 있으므로, 오래된 데이터부터 표시하기 위해 역순 정렬
             const processed = incomeStatements.slice(0, yearsToShow * (currentView === 'annual' ? 1 : 4)).reverse().map((statement, index, arr) => {
                 const revenue = parseFloat(statement.totalRevenue);
@@ -277,18 +283,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                 const netIncome = parseFloat(statement.netIncome);
                 const operatingMargin = revenue > 0 ? (operatingIncome / revenue) * 100 : 0;
 
-                // Find the closest market cap data for the period end date
-                const statementDate = new Date(statement.fiscalDateEnding);
-                let marketCap = null;
-                if(historicalMarketCaps.length > 0) {
-                    const closestMarketCap = historicalMarketCaps.reduce((prev, curr) => {
-                        const prevDate = new Date(prev.date);
-                        const currDate = new Date(curr.date);
-                        return (Math.abs(currDate - statementDate) < Math.abs(prevDate - statementDate) ? curr : prev);
-                    });
-                    marketCap = closestMarketCap.marketCap;
-                }
-
+                // Use the single latest market cap for all calculations
                 const marketCapToOperatingIncome = (operatingIncome > 0 && marketCap) ? marketCap / operatingIncome : null;
                 const marketCapToNetIncome = (netIncome > 0 && marketCap) ? marketCap / netIncome : null;
 
@@ -331,13 +326,13 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
 
                 // Determine fiscal year-end month if annual data
                 if (currentView === 'annual' && fiscalYearEndMonth === null) {
-                    fiscalYearEndMonth = statementDate.getMonth() + 1; // Month is 0-indexed
+                    fiscalYearEndMonth = new Date(statement.fiscalDateEnding).getMonth() + 1; // Month is 0-indexed
                 }
 
                 // Calculate fiscal quarter based on the determined fiscal year end
                 let fiscalQuarter = null;
                 if (fiscalYearEndMonth !== null) {
-                    const reportMonth = statementDate.getMonth() + 1; // 1-indexed month of the report
+                    const reportMonth = new Date(statement.fiscalDateEnding).getMonth() + 1; // 1-indexed month of the report
                     
                     // Calculate how many months the reportMonth is from the start of the fiscal year.
                     // The fiscal year starts in the month *after* the fiscalYearEndMonth.
