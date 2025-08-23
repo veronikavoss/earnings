@@ -1,5 +1,6 @@
 const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
         const AV_API_BASE_URL = 'https://www.alphavantage.co/query';
+
         let financialChart = null;
         let currentTicker = null;
         let currentView = 'annual'; 
@@ -12,6 +13,8 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
         const SECOND_FMP_API_KEY = 'dxY7zyF2buPgzkurZfDd94y1Z2o4gNpb'; // 여기에 실제 FMP API 키를 입력하세요.
         const AV_API_KEY = 'IOLM32O12PSE4LDJ'; // 여기에 실제 Alpha Vantage API 키를 입력하세요.
         const SECOND_AV_API_KEY = 'Q3H5NC59JKHFVB7X'; // New second Alpha Vantage API key
+        const GEMINI_API_KEY = 'AIzaSyD1Nw27d552mNllmkzAmDlKJlC865bSu00'; // 여기에 실제 Gemini API 키를 입력하세요.
+
         const searchInput = document.getElementById('searchInput');
         const searchButton = document.getElementById('searchButton');
         const loader = document.getElementById('loader');
@@ -24,6 +27,11 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
         
         const yearsRange = document.getElementById('yearsRange');
         const yearsValue = document.getElementById('yearsValue');
+
+        const geminiAnalysisSection = document.getElementById('geminiAnalysisSection');
+        const geminiLoader = document.getElementById('geminiLoader');
+        const geminiAnalysisResult = document.getElementById('geminiAnalysisResult');
+
 
         // Event Listeners
         searchButton.addEventListener('click', handleSearch);
@@ -94,6 +102,9 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
             showLoader(true);
             hideError();
             resultsSection.classList.add('hidden');
+            geminiAnalysisSection.classList.add('hidden');
+            geminiAnalysisResult.innerHTML = '';
+
 
             try {
                 // 1. FMP API로 티커 검색 및 유효성 확인
@@ -114,9 +125,15 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                 await fetchAndDisplayProfile();
 
                 // 3. Alpha Vantage API로 재무 데이터 가져오기
-                await fetchAndDisplayFinancials();
+                const processedData = await fetchAndDisplayFinancials();
                 
                 resultsSection.classList.remove('hidden');
+
+                // 4. Gemini AI 분석 요청
+                if (processedData && processedData.length > 0) {
+                    fetchAndDisplayGeminiAnalysis(processedData);
+                }
+
 
             } catch (error) {
                 console.error('handleSearch: 오류 발생:', error);
@@ -210,149 +227,174 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
             
             let incomeStatements = [];
             let incomeDataRaw = null;
-            let latestMarketCap = null; // 변경: marketCapDataRaw -> latestMarketCap
+            let earningsDataRaw = null; // 추가
+            let latestMarketCap = null;
+            let sharesOutstanding = null; // 추가
 
             try {
-                // Fetch income statement with fallback logic
+                // Fetch income statement and earnings data
                 incomeDataRaw = await fetchFromAlphaVantage('INCOME_STATEMENT', currentTicker);
+                earningsDataRaw = await fetchFromAlphaVantage('EARNINGS', currentTicker); // 추가
 
                 // Determine fiscal year end month from the latest annual report
                 if (incomeDataRaw.annualReports && incomeDataRaw.annualReports.length > 0) {
-                    const latestAnnualReport = incomeDataRaw.annualReports[0]; // Data is newest first
+                    const latestAnnualReport = incomeDataRaw.annualReports[0];
                     fiscalYearEndMonth = new Date(latestAnnualReport.fiscalDateEnding).getMonth() + 1;
                     console.log(`Fiscal year end month determined: ${fiscalYearEndMonth}`);
                 } else {
-                    // Fallback if no annual reports are available, default to December
                     fiscalYearEndMonth = 12; 
                     console.log(`No annual reports found, defaulting fiscal year end month to 12.`);
                 }
 
-                // Fetch the LATEST market cap using the quote endpoint
+                // Fetch the LATEST market cap and shares outstanding
                 const quoteUrl = `${FMP_API_BASE_URL}quote/${currentTicker}?apikey=${fmpApiKey}`;
-                console.log('fetchAndDisplayFinancials: FMP 최신 시가총액 URL:', quoteUrl);
+                console.log('fetchAndDisplayFinancials: FMP 최신 시가총액/주식수 URL:', quoteUrl);
                 const quoteResponse = await fetch(quoteUrl);
                 if (quoteResponse.ok) {
                     const quoteData = await quoteResponse.json();
                     if (quoteData.length > 0) {
                         latestMarketCap = quoteData[0].marketCap;
+                        sharesOutstanding = quoteData[0].sharesOutstanding; // 추가
                         console.log('fetchAndDisplayFinancials: 최신 시가총액:', latestMarketCap);
+                        console.log('fetchAndDisplayFinancials: 총 발행 주식 수:', sharesOutstanding);
                     }
                 }
 
                 if (currentView === 'annual' && incomeDataRaw["annualReports"]) {
                     incomeStatements = incomeDataRaw["annualReports"];
-                    console.log('fetchAndDisplayFinancials: 연간 보고서 데이터:', incomeStatements);
                 } else if (currentView === 'quarterly' && incomeDataRaw["quarterlyReports"]) {
                     incomeStatements = incomeDataRaw["quarterlyReports"];
-                    console.log('fetchAndDisplayFinancials: 분기 보고서 데이터:', incomeStatements);
                 }
                 
-
-                if (incomeStatements.length === 0) {
-                    // Check if there's a note from API (e.g. "Thank you for using Alpha Vantage!...")
+                if (incomeStatements.length === 0 && (!earningsDataRaw || earningsDataRaw.quarterlyEarnings.length === 0)) {
                     if (incomeDataRaw && incomeDataRaw["Note"]) {
                          throw new Error(`Alpha Vantage API 응답: ${incomeDataRaw["Note"]}`);
                     }
                     throw new Error('재무 데이터가 없습니다.');
                 }
 
-                const processedData = processFinancialData(incomeStatements, latestMarketCap); // 변경: latestMarketCap 전달
+                const processedData = processFinancialData(incomeStatements, latestMarketCap, earningsDataRaw, sharesOutstanding);
                 console.log('fetchAndDisplayFinancials: 처리된 재무 데이터:', processedData);
                 renderTable(processedData);
                 renderChart(processedData);
+                return processedData;
+
 
             } catch (error) {
                 console.error('fetchAndDisplayFinancials: 오류 발생:', error);
                 showError(error.message);
-                // Hide table and chart on error
                 dataTableContainer.innerHTML = '';
                 if (financialChart) {
                     financialChart.destroy();
                     financialChart = null;
                 }
+                return null;
             } finally {
                 showLoader(false);
             }
         }
-        
-        function processFinancialData(incomeStatements, marketCap) { // 변경: historicalMarketCaps -> marketCap
-            // Alpha Vantage 데이터는 최신순으로 정렬되어 있으므로, 오래된 데이터부터 표시하기 위해 역순 정렬
-            const processed = incomeStatements.slice(0, yearsToShow * (currentView === 'annual' ? 1 : 4)).reverse().map((statement, index, arr) => {
+
+        function processFinancialData(incomeStatements, marketCap, earningsData, sharesOutstanding) {
+            let combinedStatements = [...incomeStatements];
+
+            // 분기 데이터이고, 예상 실적 데이터가 있으며, 주식 수가 있을 때만 실행
+            if (currentView === 'quarterly' && earningsData && earningsData.quarterlyEarnings && sharesOutstanding) {
+                const latestReportDate = combinedStatements.length > 0 ? new Date(combinedStatements[0].fiscalDateEnding) : new Date(0);
+                
+                const futureEarnings = earningsData.quarterlyEarnings
+                    .filter(e => new Date(e.fiscalDateEnding) > latestReportDate)
+                    .map(earning => {
+                        const estimatedNetIncome = parseFloat(earning.estimatedEPS) * sharesOutstanding;
+                        return {
+                            fiscalDateEnding: earning.fiscalDateEnding,
+                            isEstimate: true,
+                            totalRevenue: null,
+                            operatingIncome: null,
+                            netIncome: estimatedNetIncome,
+                            operatingMargin: null,
+                            marketCapToOperatingIncome: null,
+                            marketCapToNetIncome: (estimatedNetIncome > 0 && marketCap) ? marketCap / estimatedNetIncome : null,
+                            revenueYoYChange: null,
+                            operatingIncomeYoYChange: null,
+                            netIncomeYoYChange: null,
+                            revenueYoYIsGood: null,
+                            operatingIncomeYoYIsGood: null,
+                            netIncomeYoYIsGood: null,
+                            fiscalQuarter: null // fiscalQuarter는 아래에서 다시 계산
+                        };
+                    });
+                
+                // 예상 실적을 최신순으로 앞에 추가
+                combinedStatements = [...futureEarnings.reverse(), ...combinedStatements];
+            }
+
+            const processed = combinedStatements.slice(0, yearsToShow * (currentView === 'annual' ? 1 : 4)).reverse().map((statement, index, arr) => {
+                if (statement.isEstimate) {
+                    // 예상 데이터는 이미 계산되었으므로 그대로 반환, fiscalQuarter만 계산
+                    const statementDate = new Date(statement.fiscalDateEnding);
+                    let fiscalQuarter = null;
+                    if (fiscalYearEndMonth !== null) {
+                        const reportMonth = statementDate.getMonth() + 1;
+                        const fiscalYearStartMonth = (fiscalYearEndMonth % 12) + 1;
+                        let monthDifference = (reportMonth - fiscalYearStartMonth + 12) % 12;
+                        fiscalQuarter = Math.floor(monthDifference / 3) + 1;
+                    }
+                    statement.fiscalQuarter = fiscalQuarter;
+                    return statement;
+                }
+
                 const revenue = parseFloat(statement.totalRevenue);
                 const operatingIncome = parseFloat(statement.operatingIncome);
                 const netIncome = parseFloat(statement.netIncome);
                 const operatingMargin = revenue > 0 ? (operatingIncome / revenue) * 100 : 0;
 
-                // Use the single latest market cap for all calculations
                 const marketCapToOperatingIncome = (operatingIncome > 0 && marketCap) ? marketCap / operatingIncome : null;
                 const marketCapToNetIncome = (netIncome > 0 && marketCap) ? marketCap / netIncome : null;
 
-                // Calculate YoY change
                 let revenueYoYChange = null;
                 let operatingIncomeYoYChange = null;
                 let netIncomeYoYChange = null;
+                let revenueYoYIsGood = null;
+                let operatingIncomeYoYIsGood = null;
+                let netIncomeYoYIsGood = null;
 
-                if (currentView === 'annual' && index > 0) {
-                    const prevStatement = arr[index - 1];
-                    const prevRevenue = parseFloat(prevStatement.totalRevenue);
-                    const prevOperatingIncome = parseFloat(prevStatement.operatingIncome);
-                    const prevNetIncome = parseFloat(prevStatement.netIncome);
+                const comparisonIndex = currentView === 'annual' ? index - 1 : index - 4;
+                if (comparisonIndex >= 0) {
+                    const prevStatement = arr[comparisonIndex];
+                    if (prevStatement && !prevStatement.isEstimate) { // 예상치와는 비교하지 않음
+                        const prevRevenue = parseFloat(prevStatement.totalRevenue);
+                        const prevOperatingIncome = parseFloat(prevStatement.operatingIncome);
+                        const prevNetIncome = parseFloat(prevStatement.netIncome);
 
-                    if (prevRevenue !== 0) {
-                        revenueYoYChange = ((revenue - prevRevenue) / prevRevenue) * 100;
-                    }
-                    if (prevOperatingIncome !== 0) {
-                        operatingIncomeYoYChange = ((operatingIncome - prevOperatingIncome) / prevOperatingIncome) * 100;
-                    }
-                    if (prevNetIncome !== 0) {
-                        netIncomeYoYChange = ((netIncome - prevNetIncome) / prevNetIncome) * 100;
-                    }
-                } else if (currentView === 'quarterly' && index >= 4) { // For quarterly, compare with 4 periods ago
-                    const prevYearSameQuarterStatement = arr[index - 4];
-                    const prevYearSameQuarterRevenue = parseFloat(prevYearSameQuarterStatement.totalRevenue);
-                    const prevYearSameQuarterOperatingIncome = parseFloat(prevYearSameQuarterStatement.operatingIncome);
-                    const prevYearSameQuarterNetIncome = parseFloat(prevYearSameQuarterStatement.netIncome);
-
-                    if (prevYearSameQuarterRevenue !== 0) {
-                        revenueYoYChange = ((revenue - prevYearSameQuarterRevenue) / prevYearSameQuarterRevenue) * 100;
-                    }
-                    if (prevYearSameQuarterOperatingIncome !== 0) {
-                        operatingIncomeYoYChange = ((operatingIncome - prevYearSameQuarterOperatingIncome) / prevYearSameQuarterOperatingIncome) * 100;
-                    }
-                    if (prevYearSameQuarterNetIncome !== 0) {
-                        netIncomeYoYChange = ((netIncome - prevYearSameQuarterNetIncome) / prevYearSameQuarterNetIncome) * 100;
+                        if (prevRevenue !== 0) {
+                            revenueYoYChange = ((revenue - prevRevenue) / Math.abs(prevRevenue)) * 100;
+                            revenueYoYIsGood = revenue > prevRevenue;
+                        }
+                        if (prevOperatingIncome !== 0) {
+                            operatingIncomeYoYChange = ((operatingIncome - prevOperatingIncome) / Math.abs(prevOperatingIncome)) * 100;
+                            operatingIncomeYoYIsGood = operatingIncome > prevOperatingIncome;
+                        }
+                        if (prevNetIncome !== 0) {
+                            netIncomeYoYChange = ((netIncome - prevNetIncome) / Math.abs(prevNetIncome)) * 100;
+                            netIncomeYoYIsGood = netIncome > prevNetIncome;
+                        }
                     }
                 }
 
-                // Determine fiscal year-end month if annual data
-                if (currentView === 'annual' && fiscalYearEndMonth === null) {
-                    fiscalYearEndMonth = new Date(statement.fiscalDateEnding).getMonth() + 1; // Month is 0-indexed
-                }
-
-                // Calculate fiscal quarter based on the determined fiscal year end
+                const statementDate = new Date(statement.fiscalDateEnding);
                 let fiscalQuarter = null;
                 if (fiscalYearEndMonth !== null) {
-                    const reportMonth = new Date(statement.fiscalDateEnding).getMonth() + 1; // 1-indexed month of the report
-                    
-                    // Calculate how many months the reportMonth is from the start of the fiscal year.
-                    // The fiscal year starts in the month *after* the fiscalYearEndMonth.
+                    const reportMonth = statementDate.getMonth() + 1;
                     const fiscalYearStartMonth = (fiscalYearEndMonth % 12) + 1;
-                    
-                    let monthDifference;
-                    if (reportMonth >= fiscalYearStartMonth) {
-                        monthDifference = reportMonth - fiscalYearStartMonth;
-                    } else {
-                        monthDifference = reportMonth - fiscalYearStartMonth + 12;
-                    }
-                    
+                    let monthDifference = (reportMonth - fiscalYearStartMonth + 12) % 12;
                     fiscalQuarter = Math.floor(monthDifference / 3) + 1;
                 } else if (currentView === 'annual') {
-                     fiscalQuarter = 4; // Fallback for annual if month not determined
+                     fiscalQuarter = 4;
                 }
-
 
                 return {
                     period: statement.fiscalDateEnding,
+                    isEstimate: false,
                     revenue,
                     operatingIncome,
                     netIncome,
@@ -362,15 +404,14 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                     revenueYoYChange,
                     operatingIncomeYoYChange,
                     netIncomeYoYChange,
-                    fiscalQuarter // Add fiscalQuarter to the returned object
+                    revenueYoYIsGood,
+                    operatingIncomeYoYIsGood,
+                    netIncomeYoYIsGood,
+                    fiscalQuarter
                 };
             });
-            return processed;
+            return processed.reverse(); // 다시 최신순으로 정렬하여 반환
         }
-
-        
-        
-        
 
         function renderTable(data) {
             if (data.length === 0) {
@@ -384,25 +425,27 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
             tableHTML += `</tr></thead><tbody>`;
 
             data.forEach((item, index) => {
-                const revenueYoY = item.revenueYoYChange !== null ? 
-                    `<span class="${item.revenueYoYChange >= 0 ? 'text-red-600' : 'text-blue-600'}"> (${item.revenueYoYChange >= 0 ? '▲' : '▼'}${item.revenueYoYChange.toFixed(1)}%)</span>` : '';
-                const operatingIncomeYoY = item.operatingIncomeYoYChange !== null ? 
-                    `<span class="${item.operatingIncomeYoYChange >= 0 ? 'text-red-600' : 'text-blue-600'}"> (${item.operatingIncomeYoYChange >= 0 ? '▲' : '▼'}${item.operatingIncomeYoYChange.toFixed(1)}%)</span>` : '';
+                const revenueYoY = item.revenueYoYChange !== null ?
+                    `<span class="${item.revenueYoYIsGood ? 'text-red-600' : 'text-blue-600'}"> (${item.revenueYoYIsGood ? '▲' : '▼'}${item.revenueYoYChange.toFixed(1)}%)</span>` : '';
+                const operatingIncomeYoY = item.operatingIncomeYoYChange !== null ?
+                    `<span class="${item.operatingIncomeYoYIsGood ? 'text-red-600' : 'text-blue-600'}"> (${item.operatingIncomeYoYIsGood ? '▲' : '▼'}${item.operatingIncomeYoYChange.toFixed(1)}%)</span>` : '';
                 const netIncomeYoY = item.netIncomeYoYChange !== null ?
-                    `<span class="${item.netIncomeYoYChange >= 0 ? 'text-red-600' : 'text-blue-600'}"> (${item.netIncomeYoYChange >= 0 ? '▲' : '▼'}${item.netIncomeYoYChange.toFixed(1)}%)</span>` : '';
+                    `<span class="${item.netIncomeYoYIsGood ? 'text-red-600' : 'text-blue-600'}"> (${item.netIncomeYoYIsGood ? '▲' : '▼'}${item.netIncomeYoYChange.toFixed(1)}%)</span>` : '';
 
                 let periodDisplay = item.period;
-                if (currentView === 'quarterly' && item.fiscalQuarter !== null) {
-                    periodDisplay = `${item.period} (${item.fiscalQuarter}Q)`;
+                if (item.isEstimate) {
+                    periodDisplay = `(E) ${item.period}`;
                 }
-                // For annual, periodDisplay remains item.period as is.
+                if (currentView === 'quarterly' && item.fiscalQuarter !== null) {
+                    periodDisplay += ` (${item.fiscalQuarter}Q)`;
+                }
 
                 tableHTML += `<tr>
                     <td>${periodDisplay}</td>
-                    <td>${formatLargeNumber(item.revenue)}${revenueYoY}</td>
-                    <td>${formatLargeNumber(item.operatingIncome)}${operatingIncomeYoY}</td>
-                    <td>${formatLargeNumber(item.netIncome)}${netIncomeYoY}</td>
-                    <td>${item.operatingMargin.toFixed(2)}</td>
+                    <td>${item.revenue ? formatLargeNumber(item.revenue) : 'N/A'}${revenueYoY}</td>
+                    <td>${item.operatingIncome ? formatLargeNumber(item.operatingIncome) : 'N/A'}${operatingIncomeYoY}</td>
+                    <td>${item.netIncome ? formatLargeNumber(item.netIncome) : 'N/A'}${netIncomeYoY}</td>
+                    <td>${item.operatingMargin !== null ? item.operatingMargin.toFixed(2) : 'N/A'}</td>
                     <td>${item.marketCapToOperatingIncome ? item.marketCapToOperatingIncome.toFixed(2) : 'N/A'}</td>
                     <td>${item.marketCapToNetIncome ? item.marketCapToNetIncome.toFixed(2) : 'N/A'}</td>
                 </tr>`;
@@ -414,17 +457,36 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
 
         function renderChart(data) {
             const ctx = document.getElementById('financialsChart').getContext('2d');
-            
+
             if (financialChart) {
                 financialChart.destroy();
             }
 
             if (data.length === 0) return;
 
-            const labels = data.map(d => d.period);
+            const labels = data.map(d => {
+                let label = d.period;
+                if (currentView === 'quarterly' && d.fiscalQuarter) {
+                    label += ` (${d.fiscalQuarter}Q)`;
+                }
+                if (d.isEstimate) {
+                    label = `(E) ${label}`;
+                }
+                return label;
+            });
+
             const revenueData = data.map(d => d.revenue);
             const operatingIncomeData = data.map(d => d.operatingIncome);
             const netIncomeData = data.map(d => d.netIncome);
+
+            const revenueColors = data.map(d => d.isEstimate ? 'rgba(54, 162, 235, 0.2)' : 'rgba(54, 162, 235, 0.6)');
+            const operatingIncomeColors = data.map(d => d.isEstimate ? 'rgba(255, 99, 132, 0.2)' : 'rgba(255, 99, 132, 0.6)');
+            const netIncomeColors = data.map(d => d.isEstimate ? 'rgba(153, 102, 255, 0.6)' : 'rgba(75, 192, 192, 0.6)'); // Distinct color for estimated net income
+
+            const revenueBorderColors = data.map(d => d.isEstimate ? 'rgba(54, 162, 235, 0.5)' : 'rgba(54, 162, 235, 1)');
+            const operatingIncomeBorderColors = data.map(d => d.isEstimate ? 'rgba(255, 99, 132, 0.5)' : 'rgba(255, 99, 132, 1)');
+            const netIncomeBorderColors = data.map(d => d.isEstimate ? 'rgba(153, 102, 255, 1)' : 'rgba(75, 192, 192, 1)');
+
 
             financialChart = new Chart(ctx, {
                 type: 'bar',
@@ -434,22 +496,22 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                         {
                             label: '매출',
                             data: revenueData,
-                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: revenueColors,
+                            borderColor: revenueBorderColors,
                             borderWidth: 1
                         },
                         {
                             label: '영업이익',
                             data: operatingIncomeData,
-                            backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: operatingIncomeColors,
+                            borderColor: operatingIncomeBorderColors,
                             borderWidth: 1
                         },
                         {
                             label: '순이익',
                             data: netIncomeData,
-                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: netIncomeColors,
+                            borderColor: netIncomeBorderColors,
                             borderWidth: 1
                         }
                     ]
@@ -482,6 +544,11 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                                         label += ': ';
                                     }
                                     if (context.parsed.y !== null) {
+                                        // Add (E) to tooltip for estimated values
+                                        const dataPoint = data[context.dataIndex];
+                                        if (dataPoint.isEstimate) {
+                                            label = `(E) ${label}`;
+                                        }
                                         label += formatLargeNumber(context.parsed.y);
                                     }
                                     return label;
@@ -591,4 +658,77 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                 return (num / 1e4).toFixed(0) + '만';
             }
             return num.toLocaleString();
+        }
+
+        async function fetchAndDisplayGeminiAnalysis(processedData) {
+            if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
+                console.warn("Gemini API key is not configured. Skipping analysis.");
+                return;
+            }
+
+            geminiAnalysisSection.classList.remove('hidden');
+            geminiLoader.classList.remove('hidden');
+            geminiAnalysisResult.innerHTML = '';
+
+            const companyName = document.querySelector('#companyProfile h2').textContent || currentTicker;
+
+            // 데이터 요약
+            const summary = processedData.map(d => {
+                const type = d.isEstimate ? "(예상)" : "(실적)";
+                return `${d.period}${type}: 매출 ${formatLargeNumber(d.revenue)}, 영업이익 ${formatLargeNumber(d.operatingIncome)}, 순이익 ${formatLargeNumber(d.netIncome)}`
+            }).join('\n');
+
+            const prompt = `
+                다음은 ${companyName}의 최근 재무 데이터입니다.
+
+                ${summary}
+
+                이 데이터를 기반으로, 전문 금융 분석가의 관점에서 회사의 실적 동향과 미래 전망에 대해 상세히 분석해주세요. 
+                긍정적인 측면과 부정적인 측면을 모두 포함하고, 핵심적인 수치 변화를 언급해주세요. 
+                분석 내용은 마크다운 형식으로 작성해주세요. 제목, 목록, 굵은 글씨 등을 활용하여 가독성을 높여주세요.
+            `;
+
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            temperature: 0.3,
+                            topK: 40,
+                            topP: 0.95,
+                            maxOutputTokens: 1024,
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Gemini API request failed with status ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.candidates && data.candidates.length > 0) {
+                    const rawText = data.candidates[0].content.parts[0].text;
+                    // Simple markdown to HTML conversion
+                    let html = rawText
+                        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // Bold
+                        .replace(/\*([^*]+)\*/g, '<em>$1</em>')       // Italics
+                        .replace(/\n/g, '<br>');                     // Newlines
+                    geminiAnalysisResult.innerHTML = html;
+                } else {
+                    throw new Error("Gemini API did not return a valid response.");
+                }
+
+            } catch (error) {
+                console.error("Error fetching Gemini analysis:", error);
+                geminiAnalysisResult.innerHTML = `<p class="text-red-500">AI 분석을 가져오는 데 실패했습니다: ${error.message}</p>`;
+            } finally {
+                geminiLoader.classList.add('hidden');
+            }
         }
