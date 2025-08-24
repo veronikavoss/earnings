@@ -13,7 +13,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
         const SECOND_FMP_API_KEY = 'dxY7zyF2buPgzkurZfDd94y1Z2o4gNpb'; // 여기에 실제 FMP API 키를 입력하세요.
         const AV_API_KEY = 'IOLM32O12PSE4LDJ'; // 여기에 실제 Alpha Vantage API 키를 입력하세요.
         const SECOND_AV_API_KEY = 'Q3H5NC59JKHFVB7X'; // New second Alpha Vantage API key
-        const GEMINI_API_KEY = 'AIzaSyD1Nw27d552mNllmkzAmDlKJlC865bSu00'; // 여기에 실제 Gemini API 키를 입력하세요.
+        
 
         const searchInput = document.getElementById('searchInput');
         const searchButton = document.getElementById('searchButton');
@@ -28,9 +28,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
         const yearsRange = document.getElementById('yearsRange');
         const yearsValue = document.getElementById('yearsValue');
 
-        const geminiAnalysisSection = document.getElementById('geminiAnalysisSection');
-        const geminiLoader = document.getElementById('geminiLoader');
-        const geminiAnalysisResult = document.getElementById('geminiAnalysisResult');
+        
 
 
         // Event Listeners
@@ -102,8 +100,6 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
             showLoader(true);
             hideError();
             resultsSection.classList.add('hidden');
-            geminiAnalysisSection.classList.add('hidden');
-            geminiAnalysisResult.innerHTML = '';
 
 
             try {
@@ -129,10 +125,7 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
                 
                 resultsSection.classList.remove('hidden');
 
-                // 4. Gemini AI 분석 요청
-                if (processedData && processedData.length > 0) {
-                    fetchAndDisplayGeminiAnalysis(processedData);
-                }
+                
 
 
             } catch (error) {
@@ -660,75 +653,4 @@ const FMP_API_BASE_URL = 'https://financialmodelingprep.com/api/v3/';
             return num.toLocaleString();
         }
 
-        async function fetchAndDisplayGeminiAnalysis(processedData) {
-            if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
-                console.warn("Gemini API key is not configured. Skipping analysis.");
-                return;
-            }
-
-            geminiAnalysisSection.classList.remove('hidden');
-            geminiLoader.classList.remove('hidden');
-            geminiAnalysisResult.innerHTML = '';
-
-            const companyName = document.querySelector('#companyProfile h2').textContent || currentTicker;
-
-            // 데이터 요약
-            const summary = processedData.map(d => {
-                const type = d.isEstimate ? "(예상)" : "(실적)";
-                return `${d.period}${type}: 매출 ${formatLargeNumber(d.revenue)}, 영업이익 ${formatLargeNumber(d.operatingIncome)}, 순이익 ${formatLargeNumber(d.netIncome)}`
-            }).join('\n');
-
-            const prompt = `
-                다음은 ${companyName}의 최근 재무 데이터입니다.
-
-                ${summary}
-
-                이 데이터를 기반으로, 전문 금융 분석가의 관점에서 회사의 실적 동향과 미래 전망에 대해 상세히 분석해주세요. 
-                긍정적인 측면과 부정적인 측면을 모두 포함하고, 핵심적인 수치 변화를 언급해주세요. 
-                분석 내용은 마크다운 형식으로 작성해주세요. 제목, 목록, 굵은 글씨 등을 활용하여 가독성을 높여주세요.
-            `;
-
-            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
-
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: {
-                            temperature: 0.3,
-                            topK: 40,
-                            topP: 0.95,
-                            maxOutputTokens: 1024,
-                        }
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Gemini API request failed with status ${response.status}`);
-                }
-
-                const data = await response.json();
-                
-                if (data.candidates && data.candidates.length > 0) {
-                    const rawText = data.candidates[0].content.parts[0].text;
-                    // Simple markdown to HTML conversion
-                    let html = rawText
-                        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // Bold
-                        .replace(/\*([^*]+)\*/g, '<em>$1</em>')       // Italics
-                        .replace(/\n/g, '<br>');                     // Newlines
-                    geminiAnalysisResult.innerHTML = html;
-                } else {
-                    throw new Error("Gemini API did not return a valid response.");
-                }
-
-            } catch (error) {
-                console.error("Error fetching Gemini analysis:", error);
-                geminiAnalysisResult.innerHTML = `<p class="text-red-500">AI 분석을 가져오는 데 실패했습니다: ${error.message}</p>`;
-            } finally {
-                geminiLoader.classList.add('hidden');
-            }
-        }
+        
