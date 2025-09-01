@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const SECOND_FMP_API_KEY = 'dxY7zyF2buPgzkurZfDd94y1Z2o4gNpb';
     const AV_API_KEY = 'IOLM32O12PSE4LDJ';
     const SECOND_AV_API_KEY = 'Q3H5NC59JKHFVB7X';
-    const GEMINI_API_KEY = 'AIzaSyD1Nw27d552mNllmkzAmDlKJlC865bSu00';
 
     const searchInput = document.getElementById('searchInput');
     const searchButton = document.getElementById('searchButton');
@@ -32,9 +31,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const krwBtn = document.getElementById('krwBtn');
     const yearsRange = document.getElementById('yearsRange');
     const yearsValue = document.getElementById('yearsValue');
-    const geminiAnalysisSection = document.getElementById('geminiAnalysisSection');
-    const geminiLoader = document.getElementById('geminiLoader');
-    const geminiAnalysisResult = document.getElementById('geminiAnalysisResult');
 
     // Event Listeners
     searchButton.addEventListener('click', handleSearch);
@@ -107,8 +103,6 @@ document.addEventListener('DOMContentLoaded', function() {
         showLoader(true);
         hideError();
         resultsSection.classList.add('hidden');
-        geminiAnalysisSection.classList.add('hidden');
-        geminiAnalysisResult.innerHTML = '';
         lastProfileData = null;
         lastFinancialData = null;
         usdToKrwRate = null;
@@ -124,11 +118,8 @@ document.addEventListener('DOMContentLoaded', function() {
             currentTicker = searchData[0].symbol;
             await fetchExchangeRate();
             await fetchAndDisplayProfile();
-            const processedData = await fetchAndDisplayFinancials();
+            await fetchAndDisplayFinancials();
             resultsSection.classList.remove('hidden');
-            if (processedData && processedData.length > 0) {
-                fetchAndDisplayGeminiAnalysis(processedData);
-            }
         } catch (error) {
             showError(error.message);
         } finally {
@@ -139,23 +130,51 @@ document.addEventListener('DOMContentLoaded', function() {
     async function fetchExchangeRate() {
         if (usdToKrwRate) return;
         try {
-            const apiKey = FMP_API_KEY;
-            const url = `https://financialmodelingprep.com/api/v3/fx/USDKRW?apikey=${apiKey}`;
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('FMP 환율 API 호출 실패');
-            };
-            const data = await response.json();
-            if (data && data.length > 0 && data[0].rate) {
-                usdToKrwRate = data[0].rate;
-                console.log(`Fetched USD/KRW exchange rate: ${usdToKrwRate}`);
+            const apiKey = 'ixCOgz4fZCVMO1h0wypjsh6r75on2HlP';
+            let data = [];
+            let searchDate = new Date();
+
+            for (let i = 0; i < 7; i++) {
+                const yyyy = searchDate.getFullYear();
+                const mm = String(searchDate.getMonth() + 1).padStart(2, '0');
+                const dd = String(searchDate.getDate()).padStart(2, '0');
+                const dateStr = `${yyyy}${mm}${dd}`;
+
+                const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+                const originalUrl = `https://oapi.koreaexim.go.kr/site/program/financial/exchangeJSON?authkey=${apiKey}&searchdate=${dateStr}&data=AP01`;
+                const url = `${corsProxy}${originalUrl}`;
+                
+                const response = await fetch(url);
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(`API response for ${dateStr}:`, result);
+                    if (Array.isArray(result) && result.length > 0 && result[0].result === 1) {
+                        data = result;
+                        break; 
+                    } else {
+                        console.log(`No valid data for ${dateStr}.`);
+                    }
+                } else {
+                    console.log(`Fetch not OK for ${dateStr}. Status: ${response.status}`);
+                }
+                searchDate.setDate(searchDate.getDate() - 1);
+            }
+
+            if (data && data.length > 0) {
+                const usdData = data.find(item => item.cur_unit === 'USD');
+                if (usdData && usdData.deal_bas_r) {
+                    usdToKrwRate = parseFloat(usdData.deal_bas_r.replace(/,/g, ''));
+                    console.log(`Fetched EximBank USD/KRW exchange rate: ${usdToKrwRate}`);
+                } else {
+                    throw new Error('API 응답에서 USD 환율 정보를 찾을 수 없습니다.');
+                }
             } else {
-                throw new Error('환율 데이터를 가져올 수 없습니다.');
+                throw new Error('지난 7일간 유효한 환율 데이터를 가져올 수 없습니다.');
             }
         } catch (error) {
-            console.error("Failed to fetch exchange rate:", error);
-            usdToKrwRate = 1300;
-            showError("환율 정보를 가져오지 못했습니다. 기본값(1300원/달러)을 사용합니다.");
+            console.error("Failed to fetch exchange rate from EximBank:", error);
+            usdToKrwRate = 1300; // Fallback
+            showError("수출입은행 환율 정보를 가져오지 못했습니다. 기본값(1300원/달러)을 사용합니다.");
         }
     }
 
@@ -591,62 +610,4 @@ document.addEventListener('DOMContentLoaded', function() {
             hideAutocomplete();
         }
     });
-
-    async function fetchAndDisplayGeminiAnalysis(processedData) {
-        if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
-            return;
-        }
-        geminiAnalysisSection.classList.remove('hidden');
-        geminiLoader.classList.remove('hidden');
-        geminiAnalysisResult.innerHTML = '';
-        const companyName = document.querySelector('#companyProfile h2').textContent || currentTicker;
-        const summary = processedData.map(d => {
-            const type = d.isEstimate ? "(예상)" : "(실적)";
-            return `${d.period}${type}: 매출 ${formatLargeNumber(d.revenue)}, 영업이익 ${formatLargeNumber(d.operatingIncome)}, 순이익 ${formatLargeNumber(d.netIncome)}`
-        }).join('\n');
-        const prompt = `
-            다음은 ${companyName}의 최근 재무 데이터입니다.
-
-            ${summary}
-
-            이 데이터를 기반으로, 전문 금융 분석가의 관점에서 회사의 실적 동향과 미래 전망에 대해 상세히 분석해주세요. 
-            긍정적인 측면과 부정적인 측면을 모두 포함하고, 핵심적인 수치 변화를 언급해주세요. 
-            분석 내용은 마크다운 형식으로 작성해주세요. 제목, 목록, 굵은 글씨 등을 활용하여 가독성을 높여주세요.
-        `;
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        temperature: 0.3,
-                        topK: 40,
-                        topP: 0.95,
-                        maxOutputTokens: 1024,
-                    }
-                })
-            });
-            if (!response.ok) {
-                throw new Error(`Gemini API request failed with status ${response.status}`);
-            }
-            const data = await response.json();
-            if (data.candidates && data.candidates.length > 0) {
-                const rawText = data.candidates[0].content.parts[0].text;
-                let html = rawText
-                    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-                    .replace(/\n/g, '<br>');
-                geminiAnalysisResult.innerHTML = html;
-            } else {
-                throw new Error("Gemini API did not return a valid response.");
-            }
-        } catch (error) {
-            console.error("Error fetching Gemini analysis:", error);
-            geminiAnalysisResult.innerHTML = `<p class="text-red-500">AI 분석을 가져오는 데 실패했습니다: ${error.message}</p>`;
-        } finally {
-            geminiLoader.classList.add('hidden');
-        }
-    }
 });
