@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const dd = String(searchDate.getDate()).padStart(2, '0');
                 const dateStr = `${yyyy}${mm}${dd}`;
 
-                const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+                const corsProxy = 'https://corsproxy.io/';
                 const originalUrl = `https://oapi.koreaexim.go.kr/site/program/financial/exchangeJSON?authkey=${apiKey}&searchdate=${dateStr}&data=AP01`;
                 const url = `${corsProxy}${originalUrl}`;
                 
@@ -225,13 +225,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function fetchFromAlphaVantage(apiFunction, symbol) {
+        const corsProxy = 'https://corsproxy.io/';
         const primaryKey = AV_API_KEY;
         const secondaryKey = SECOND_AV_API_KEY;
-        let url = `${AV_API_BASE_URL}?function=${apiFunction}&symbol=${symbol}&apikey=${primaryKey}`;
+        let url = `${corsProxy}${AV_API_BASE_URL}?function=${apiFunction}&symbol=${symbol}&apikey=${primaryKey}`;
         let response = await fetch(url);
         let data = await response.json();
         if (!response.ok || data["Error Message"] || data["Note"]) {
-            url = `${AV_API_BASE_URL}?function=${apiFunction}&symbol=${symbol}&apikey=${secondaryKey}`;
+            url = `${corsProxy}${AV_API_BASE_URL}?function=${apiFunction}&symbol=${symbol}&apikey=${secondaryKey}`;
             response = await fetch(url);
             data = await response.json();
             if (!response.ok || data["Error Message"] || data["Note"]) {
