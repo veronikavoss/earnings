@@ -2,9 +2,9 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>기업 실적 검색기 (Alpha Vantage + Gemini)</title>
-    <!-- Tailwind CSS CDN 로드 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>기업 실적 검색기</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -18,39 +18,52 @@
         }
     </script>
     <style>
-        /* 간단한 로딩 스피너 스타일 */
         .loader {
-            border: 4px solid #f3f3f3; /* Light grey */
-            border-top: 4px solid #3498db; /* Blue */
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
             border-radius: 50%;
             width: 40px;
             height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        /* AI 요약용 작은 스피너 */
-        .loader-sm {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .overflow-x-auto {
+            -webkit-overflow-scrolling: touch;
+        }
+        /* 자동완성 스크롤바 커스텀 */
+        #autocomplete-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        #autocomplete-list::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 3px;
+        }
+        #autocomplete-list::-webkit-scrollbar-track {
+            background-color: #f1f5f9;
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen font-sans py-12">
-    <div class="bg-white p-8 md:p-12 rounded-lg shadow-xl w-full max-w-5xl mx-auto my-8">
-        <h1 class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-6">기업 실적 검색기 (Alpha Vantage + Gemini)</h1>
-        <p class="text-center text-gray-600 mb-8">미국 상장 기업의 티커(Ticker)를 입력하세요 (예: AAPL, MSFT, IBM)</p>
+<body class="bg-gray-100 min-h-screen font-sans py-6 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 md:p-12 rounded-lg shadow-xl w-full max-w-5xl mx-auto my-4">
+        <h1 class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-4 md:mb-6">기업 실적 검색기</h1>
+        <p class="text-center text-gray-600 mb-6 md:mb-8 text-sm md:text-base">미국 상장 기업의 티커(Ticker)를 입력하세요 (예: AAPL, MSFT, IBM)</p>
         
         <!-- 검색 폼 -->
-        <div class="flex flex-col sm:flex-row gap-3 mb-8">
-            <input type="text" id="tickerInput" placeholder="티커 입력 (예: AAPL)" class="flex-grow w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow">
-            <button id="searchButton" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+        <div class="flex flex-col sm:flex-row gap-3 mb-6 md:mb-8 relative">
+            <!-- 입력창 래퍼 -->
+            <div class="relative flex-grow">
+                <input type="text" id="tickerInput" placeholder="티커 또는 회사명 입력 (예: AAPL, Apple)" 
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow text-lg" 
+                       autocomplete="off" autocapitalize="characters">
+                
+                <!-- 자동완성 목록 -->
+                <ul id="autocomplete-list" class="hidden absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto text-left"></ul>
+            </div>
+
+            <button id="searchButton" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-lg shadow-sm active:bg-blue-800">
                 검색
             </button>
         </div>
@@ -62,103 +75,95 @@
                 <div class="loader mb-3"></div>
             </div>
 
-            <!-- 에러 메시지 (초기 숨김) -->
-            <div id="errorMessage" class="hidden text-center text-red-600 p-6 bg-red-50 rounded-lg border border-red-100 shadow-sm"></div>
+            <!-- 에러 메시지 -->
+            <div id="errorMessage" class="hidden text-center text-red-600 p-4 md:p-6 bg-red-50 rounded-lg border border-red-100 shadow-sm break-keep"></div>
 
-            <!-- 요약 정보 카드 (주가, 시가총액) -->
-            <div id="summaryCard" class="hidden bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 mb-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                <div>
-                    <h2 id="companyName" class="text-2xl font-bold text-gray-800"></h2>
-                    <p id="companyTicker" class="text-sm text-gray-500 font-semibold"></p>
+            <!-- 요약 정보 카드 -->
+            <div id="summaryCard" class="hidden bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-5 mb-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 md:gap-8">
+                <div class="text-center md:text-left">
+                    <h2 id="companyName" class="text-xl md:text-2xl font-bold text-gray-800 leading-tight"></h2>
+                    <p id="companyTicker" class="text-sm text-gray-500 font-semibold mt-1"></p>
                 </div>
-                <div class="flex gap-8 text-right">
+                <div class="flex flex-row gap-6 md:gap-12 w-full md:w-auto justify-center md:justify-end text-center md:text-right border-t md:border-t-0 border-gray-200 pt-4 md:pt-0 mt-2 md:mt-0">
                     <div>
-                        <p class="text-sm text-gray-500">현재 주가</p>
-                        <p id="currentPrice" class="text-2xl font-bold text-blue-600">-</p>
+                        <p class="text-xs md:text-sm text-gray-500 mb-1">현재 주가</p>
+                        <div class="flex flex-col md:flex-row items-center md:items-baseline justify-center md:justify-end gap-1 md:gap-2">
+                            <p id="currentPrice" class="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">-</p>
+                            <span id="priceChange" class="text-xs md:text-sm font-bold px-2 py-0.5 rounded bg-gray-100 whitespace-nowrap">-</span>
+                        </div>
                     </div>
                     <div>
-                        <p class="text-sm text-gray-500">시가총액 (Real-time)</p>
-                        <p id="marketCap" class="text-2xl font-bold text-gray-800">-</p>
+                        <p class="text-xs md:text-sm text-gray-500 mb-1">시가총액 (Real-time)</p>
+                        <p id="marketCap" class="text-xl md:text-2xl font-bold text-gray-800 tracking-tight">-</p>
                     </div>
                 </div>
             </div>
 
-            <!-- 옵션 라디오 버튼 (위치 이동됨: 요약 카드 아래, 표 위) -->
-            <div id="optionsArea" class="hidden flex flex-col sm:flex-row justify-end gap-6 mb-4 transition-opacity duration-500 ease-in-out bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <!-- 기간 선택 -->
-                <fieldset>
-                    <legend class="sr-only">기간</legend>
-                    <div class="flex gap-4 items-center">
-                        <span class="text-sm font-medium text-gray-600 mr-1">기간:</span>
-                        <label class="flex items-center space-x-2 cursor-pointer hover:text-blue-600 transition-colors">
-                            <input type="radio" name="timeframe" value="annual" class="form-radio text-blue-600 focus:ring-blue-500" checked>
-                            <span class="text-gray-800 text-sm font-medium">연간</span>
+            <!-- 옵션 라디오 버튼 -->
+            <div id="optionsArea" class="hidden flex flex-col sm:flex-row justify-between sm:justify-end gap-4 md:gap-6 mb-4 transition-opacity duration-500 ease-in-out bg-gray-50 p-4 rounded-lg border border-gray-100 text-sm">
+                <fieldset class="flex-1 sm:flex-none">
+                    <div class="flex justify-center sm:justify-start gap-4 items-center h-full">
+                        <span class="font-medium text-gray-600 mr-1 whitespace-nowrap">기간:</span>
+                        <label class="flex items-center space-x-2 cursor-pointer hover:text-blue-600 transition-colors py-1">
+                            <input type="radio" name="timeframe" value="annual" class="form-radio text-blue-600 focus:ring-blue-500 w-4 h-4" checked>
+                            <span class="text-gray-800 font-medium">연간</span>
                         </label>
-                        <label class="flex items-center space-x-2 cursor-pointer hover:text-blue-600 transition-colors">
-                            <input type="radio" name="timeframe" value="quarterly" class="form-radio text-blue-600 focus:ring-blue-500">
-                            <span class="text-gray-800 text-sm font-medium">분기</span>
+                        <label class="flex items-center space-x-2 cursor-pointer hover:text-blue-600 transition-colors py-1">
+                            <input type="radio" name="timeframe" value="quarterly" class="form-radio text-blue-600 focus:ring-blue-500 w-4 h-4">
+                            <span class="text-gray-800 font-medium">분기</span>
                         </label>
                     </div>
                 </fieldset>
-
-                <!-- 구분선 (모바일 제외) -->
-                <div class="hidden sm:block w-px bg-gray-300"></div>
-
-                <!-- 통화 선택 -->
-                <fieldset>
-                    <legend class="sr-only">통화</legend>
-                    <div class="flex gap-4 items-center">
-                        <span class="text-sm font-medium text-gray-600 mr-1">통화:</span>
-                        <label class="flex items-center space-x-2 cursor-pointer hover:text-blue-600 transition-colors">
-                            <input type="radio" name="currency" value="usd" class="form-radio text-blue-600 focus:ring-blue-500" checked>
-                            <span class="text-gray-800 text-sm font-medium">달러 (USD)</span>
+                <div class="hidden sm:block w-px bg-gray-300 mx-2"></div>
+                <div class="block sm:hidden h-px bg-gray-200 w-full"></div>
+                <fieldset class="flex-1 sm:flex-none">
+                    <div class="flex justify-center sm:justify-start gap-4 items-center h-full">
+                        <span class="font-medium text-gray-600 mr-1 whitespace-nowrap">통화:</span>
+                        <label class="flex items-center space-x-2 cursor-pointer hover:text-blue-600 transition-colors py-1">
+                            <input type="radio" name="currency" value="usd" class="form-radio text-blue-600 focus:ring-blue-500 w-4 h-4" checked>
+                            <span class="text-gray-800 font-medium">달러 (USD)</span>
                         </label>
-                        <label class="flex items-center space-x-2 cursor-pointer hover:text-blue-600 transition-colors">
-                            <input type="radio" name="currency" value="krw" class="form-radio text-blue-600 focus:ring-blue-500">
-                            <span class="text-gray-800 text-sm font-medium">원화 (KRW)</span>
+                        <label class="flex items-center space-x-2 cursor-pointer hover:text-blue-600 transition-colors py-1">
+                            <input type="radio" name="currency" value="krw" class="form-radio text-blue-600 focus:ring-blue-500 w-4 h-4">
+                            <span class="text-gray-800 font-medium">원화 (KRW)</span>
                         </label>
                     </div>
                 </fieldset>
             </div>
 
-            <!-- 환율 정보 표시 영역 -->
-            <div id="exchangeRateInfo" class="hidden mb-6 text-right text-xs text-gray-400 italic">
-                <!-- JS로 내용 채움 -->
-            </div>
+            <!-- 환율 정보 -->
+            <div id="exchangeRateInfo" class="hidden mb-6 text-right text-xs text-gray-400 italic pr-1"></div>
 
-            <!-- 결과 헤더 (초기 숨김) -->
-            <div id="resultsHeaderContainer" class="hidden items-center justify-between mb-4 flex-wrap border-t border-gray-200 pt-6">
-                <h2 id="resultsHeader" class="text-xl font-semibold text-gray-700">재무 제표</h2>
-                <button id="aiSummaryButton" class="hidden bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:from-purple-600 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all shadow-md mt-2 md:mt-0">
+            <!-- 결과 헤더 -->
+            <div id="resultsHeaderContainer" class="hidden flex-col md:flex-row items-center justify-between mb-4 gap-4 border-t border-gray-200 pt-6">
+                <h2 id="resultsHeader" class="text-xl font-semibold text-gray-700 w-full md:w-auto text-center md:text-left">재무 제표</h2>
+                <button id="aiSummaryButton" class="hidden w-full md:w-auto bg-gradient-to-r from-purple-500 to-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold hover:from-purple-600 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all shadow-md text-sm">
                     ✨ AI 재무 요약
                 </button>
             </div>
 
-            <!-- AI 요약 결과 (초기 숨김) -->
+            <!-- AI 요약 결과 -->
             <div id="aiSummaryArea" class="hidden mb-6">
-                <!-- AI 로더 -->
                 <div id="aiLoader" class="hidden flex items-center justify-center p-4 bg-gray-50 rounded-lg">
-                    <div class="loader-sm mr-3"></div>
-                    <span class="text-gray-600">Gemini AI가 재무 데이터를 분석 중입니다...</span>
+                    <div class="loader border-2 w-6 h-6 mr-3"></div>
+                    <span class="text-gray-600 text-sm">AI 분석 중...</span>
                 </div>
-                <!-- AI 결과 -->
-                <div id="aiSummaryContent" class="hidden p-4 bg-blue-50 border-l-4 border-blue-400 rounded-lg shadow-sm">
-                    <h3 class="font-bold text-blue-800 mb-2">✨ AI 재무 요약</h3>
-                    <p id="aiSummaryText" class="text-gray-800 whitespace-pre-wrap"></p>
+                <div id="aiSummaryContent" class="hidden p-5 bg-blue-50 border-l-4 border-blue-400 rounded-lg shadow-sm">
+                    <h3 class="font-bold text-blue-800 mb-3 flex items-center">
+                        <span class="text-xl mr-2">🤖</span> AI 재무 요약
+                    </h3>
+                    <p id="aiSummaryText" class="text-gray-800 whitespace-pre-wrap leading-relaxed text-sm md:text-base"></p>
                 </div>
-                <!-- AI 에러 -->
-                <div id="aiError" class="hidden p-4 bg-red-50 text-red-700 rounded-lg"></div>
+                <div id="aiError" class="hidden p-4 bg-red-50 text-red-700 rounded-lg text-sm"></div>
             </div>
 
-            <!-- 결과 목록 (표가 여기에 삽입됨) -->
-            <div id="resultsList" class="space-y-4">
-                <!-- 결과 항목이 여기에 동적으로 추가됩니다 -->
-            </div>
+            <!-- 결과 목록 -->
+            <div id="resultsList" class="space-y-4"></div>
         </div>
     </div>
 
     <script>
-        // DOM 요소
+        // --- 1. DOM 요소 ---
         const tickerInput = document.getElementById('tickerInput');
         const searchButton = document.getElementById('searchButton');
         const loader = document.getElementById('loader');
@@ -174,143 +179,171 @@
         const aiError = document.getElementById('aiError');
         const exchangeRateInfo = document.getElementById('exchangeRateInfo');
         const optionsArea = document.getElementById('optionsArea');
+        const autocompleteList = document.getElementById('autocomplete-list');
         
-        // 요약 카드 요소
         const summaryCard = document.getElementById('summaryCard');
         const companyName = document.getElementById('companyName');
         const companyTicker = document.getElementById('companyTicker');
         const currentPrice = document.getElementById('currentPrice');
+        const priceChange = document.getElementById('priceChange');
         const marketCap = document.getElementById('marketCap');
 
-
-        // API 키
+        // --- 2. API 설정 ---
         const GEMINI_API_KEY = "";
-        // 세 개의 API 키를 배열로 저장
         const ALPHA_VANTAGE_API_KEYS = [
             "IOLM32O12PSE4LDJ", 
             "Q3H5NC59JKHFVB7X",
             "5I1RLIUUUEEM3LSR"
         ];
-        
-        // 한국수출입은행 API 키
         const KEXIM_API_KEY = "ixCOgz4fZCVMO1h0wypjsh6r75on2HlP"; 
 
-        // 전역 상태 변수
+        // --- 3. 전역 상태 ---
         let currentTimeframe = 'annual';
         let currentCurrency = 'usd';
-        let usdToKrwRate = 1430; // 기본값 설정 (안전장치)
-        let fetchedData = null; // API로부터 받은 원본 데이터를 저장
-        
-        // 포맷팅 헬퍼: 숫자
-        function formatNumber(num, format = 'default') {
-            if (num === null || num === undefined || num === 'N/A' || isNaN(num)) return 'N/A';
-            
-            num = parseFloat(num); 
+        let usdToKrwRate = 1430; 
+        let fetchedData = null; 
+        let tickerList = []; 
 
-            if (format === 'percent') {
-                return (num * 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
-            }
-            if (format === 'ratio') {
-                return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'x';
-            }
+        // --- 4. 초기화 및 이벤트 리스너 ---
+        window.addEventListener('DOMContentLoaded', async () => {
+            await fetchTickerData();
+        });
 
-            // 'default' format (통화)
-            let value = num;
-
-            if (currentCurrency === 'krw' && usdToKrwRate) {
-                value = num * usdToKrwRate;
-                
-                // 원화(KRW) 포맷팅
-                if (Math.abs(value) >= 1_000_000_000_000) {
-                    return (value / 1_000_000_000_000).toFixed(2) + '조';
-                }
-                if (Math.abs(value) >= 100_000_000) {
-                    return (value / 100_000_000).toFixed(2) + '억';
-                }
-                if (Math.abs(value) >= 10_000) {
-                    return (value / 10_000).toFixed(2) + '만';
-                }
-                return value.toLocaleString('ko-KR', { maximumFractionDigits: 0 }) + '원';
-            } else {
-                // 달러(USD) 포맷팅
-                // 1조 (Trillion) - 초대형 기업용
-                if (Math.abs(value) >= 1_000_000_000_000) {
-                    return (value / 1_000_000_000_000).toFixed(2) + 'T';
-                }
-                // 10억 (Billion)
-                if (Math.abs(value) >= 1_000_000_000) {
-                    return (value / 1_000_000_000).toFixed(2) + 'B';
-                }
-                // 100만 (Million)
-                if (Math.abs(value) >= 1_000_000) {
-                    return (value / 1_000_000).toFixed(2) + 'M';
-                }
-                if (Math.abs(value) >= 1_000) {
-                     return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                }
-                return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            }
-        }
-        
-        // 단순 가격 포맷팅
-        function formatPrice(num) {
-            if (num === null || num === undefined || isNaN(num)) return '-';
-            num = parseFloat(num);
-            
-            if (currentCurrency === 'krw' && usdToKrwRate) {
-                const val = num * usdToKrwRate;
-                return val.toLocaleString('ko-KR', { maximumFractionDigits: 0 }) + '원';
-            } else {
-                return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            }
-        }
-
-
-        // 포맷팅 헬퍼: 날짜
-        function formatDate(dateStr) {
-            if (!dateStr) return 'N/A';
+        async function fetchTickerData() {
             try {
-                const d = new Date(dateStr);
-                const year = d.getUTCFullYear();
-                const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-                const day = String(d.getUTCDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
+                const response = await fetch('https://corsproxy.io/?https://www.sec.gov/files/company_tickers.json');
+                const data = await response.json();
+                tickerList = Object.values(data);
+                console.log(`Loaded ${tickerList.length} companies.`);
             } catch (e) {
-                return dateStr; 
+                console.warn("Ticker load failed", e);
             }
         }
 
-        // 검색 버튼 클릭 이벤트
+        tickerInput.addEventListener('input', function() {
+            const val = this.value;
+            closeAutocomplete();
+            if (!val || val.length < 1) return;
+            
+            const matches = filterCompanies(val);
+            if (matches.length > 0) {
+                showAutocomplete(matches);
+            }
+        });
+
+        tickerInput.addEventListener('focus', function() {
+            if (this.value.length >= 1) {
+                const matches = filterCompanies(this.value);
+                if (matches.length > 0) showAutocomplete(matches);
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (e.target !== tickerInput && e.target.parentNode !== autocompleteList) {
+                closeAutocomplete();
+            }
+        });
+
+        function filterCompanies(query) {
+            if (!tickerList.length) return [];
+            const q = query.toUpperCase();
+            return tickerList.filter(c => 
+                c.ticker.startsWith(q) || c.title.toUpperCase().includes(q)
+            ).slice(0, 10); 
+        }
+
+        function showAutocomplete(matches) {
+            autocompleteList.innerHTML = '';
+            matches.forEach(match => {
+                const li = document.createElement('li');
+                li.className = "px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex justify-between items-center";
+                li.innerHTML = `
+                    <div>
+                        <span class="font-bold text-gray-800 w-16 inline-block">${match.ticker}</span>
+                        <span class="text-sm text-gray-600 truncate max-w-[200px] sm:max-w-xs inline-block align-bottom">${match.title}</span>
+                    </div>
+                `;
+                li.addEventListener('click', () => {
+                    tickerInput.value = match.ticker;
+                    closeAutocomplete();
+                    searchFilings(); 
+                });
+                autocompleteList.appendChild(li);
+            });
+            autocompleteList.classList.remove('hidden');
+        }
+
+        function closeAutocomplete() {
+            autocompleteList.innerHTML = '';
+            autocompleteList.classList.add('hidden');
+        }
+
         searchButton.addEventListener('click', searchFilings);
-        // Enter 키로도 검색 실행
         tickerInput.addEventListener('keyup', (event) => {
             if (event.key === 'Enter') {
+                closeAutocomplete();
                 searchFilings();
             }
         });
 
-        // 라디오 버튼 이벤트 리스너 추가
         document.querySelectorAll('input[name="timeframe"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 currentTimeframe = e.target.value;
-                if (fetchedData) { 
-                    displayResults(fetchedData.ticker, fetchedData);
-                }
+                if (fetchedData) displayResults(fetchedData.ticker, fetchedData);
             });
         });
 
         document.querySelectorAll('input[name="currency"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 currentCurrency = e.target.value;
-                if (fetchedData) { 
+                if (fetchedData) {
                     displayResults(fetchedData.ticker, fetchedData);
-                    updateExchangeRateInfo(); 
+                    updateExchangeRateInfo();
                 }
             });
         });
 
-        // 환율 정보 UI 업데이트
-        function updateExchangeRateInfo(source = '기본값', rate = 1430) {
+        // --- 5. 헬퍼 함수 ---
+        function formatNumber(num, format = 'default') {
+            if (num === null || num === undefined || num === 'N/A' || isNaN(num)) return 'N/A';
+            num = parseFloat(num); 
+
+            if (format === 'percent') return (num * 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+            if (format === 'ratio') return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'x';
+
+            let value = num;
+            if (currentCurrency === 'krw' && usdToKrwRate) {
+                value = num * usdToKrwRate;
+                if (Math.abs(value) >= 1_000_000_000_000) return (value / 1_000_000_000_000).toFixed(2) + '조';
+                if (Math.abs(value) >= 100_000_000) return (value / 100_000_000).toFixed(2) + '억';
+                if (Math.abs(value) >= 10_000) return (value / 10_000).toFixed(2) + '만';
+                return value.toLocaleString('ko-KR', { maximumFractionDigits: 0 }) + '원';
+            } else {
+                if (Math.abs(value) >= 1_000_000_000_000) return (value / 1_000_000_000_000).toFixed(2) + 'T';
+                if (Math.abs(value) >= 1_000_000_000) return (value / 1_000_000_000).toFixed(2) + 'B';
+                if (Math.abs(value) >= 1_000_000) return (value / 1_000_000).toFixed(2) + 'M';
+                return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+        }
+        
+        function formatPrice(num) {
+            if (num === null || num === undefined || isNaN(num)) return '-';
+            num = parseFloat(num);
+            
+            if (currentCurrency === 'krw' && usdToKrwRate) {
+                return (num * usdToKrwRate).toLocaleString('ko-KR', { maximumFractionDigits: 0 }) + '원';
+            }
+            return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            try {
+                return dateStr.substring(0, 10);
+            } catch (e) { return dateStr; }
+        }
+
+        function updateExchangeRateInfo(source = '기본값') {
             if (currentCurrency === 'krw' && usdToKrwRate) {
                 exchangeRateInfo.textContent = `적용 환율: ${usdToKrwRate.toLocaleString()}원/USD (${source})`;
                 exchangeRateInfo.classList.remove('hidden');
@@ -319,93 +352,71 @@
             }
         }
 
-        // 통합 환율 조회 함수
+        // --- 6. API 관련 함수 ---
+        async function fetchWithTimeout(resource, options = {}) {
+            const { timeout = 5000 } = options;
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            const response = await fetch(resource, { ...options, signal: controller.signal });
+            clearTimeout(id);
+            return response;
+        }
+
         async function getExchangeRate() {
             const keximRate = await getKeximRateRecursive();
             if (keximRate) return { rate: keximRate, source: '한국수출입은행' };
 
             try {
-                const res = await fetch('https://open.er-api.com/v6/latest/USD');
+                const res = await fetchWithTimeout('https://open.er-api.com/v6/latest/USD');
                 const json = await res.json();
-                if (json && json.rates && json.rates.KRW) {
-                    console.log('Used Open Exchange Rate as fallback');
-                    return { rate: json.rates.KRW, source: 'Open Exchange Rates' };
-                }
-            } catch (e) {
-                console.warn('Fallback API failed', e);
-            }
+                if (json?.rates?.KRW) return { rate: json.rates.KRW, source: 'Open Exchange Rates' };
+            } catch (e) { console.warn('Fallback API failed', e); }
 
             return { rate: 1430, source: '기본값 (API 연결 실패)' };
         }
 
-        // 한국수출입은행 API 재귀 호출
         async function getKeximRateRecursive(attempt = 0) {
-            if (!KEXIM_API_KEY) return null;
-            if (attempt > 7) return null; 
-
+            if (!KEXIM_API_KEY || attempt > 7) return null;
             const date = new Date();
             date.setDate(date.getDate() - attempt);
-            
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             const searchDate = `${year}${month}${day}`;
-
             const url = `https://www.koreaexim.go.kr/site/program/financial/exchangeJSON?authkey=${KEXIM_API_KEY}&searchdate=${searchDate}&data=AP01`;
             const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
 
             try {
-                const res = await fetch(proxyUrl);
-                if (!res.ok) throw new Error('Network response was not ok');
+                const res = await fetchWithTimeout(proxyUrl, { timeout: 4000 });
+                if (!res.ok) throw new Error('Network error');
                 const json = await res.json();
-                
-                if (Array.isArray(json) && json.length > 0) {
+                if (Array.isArray(json)) {
                     const usdData = json.find(item => item.cur_unit === 'USD');
-                    if (usdData) {
-                        const rate = parseFloat(usdData.deal_bas_r.replace(/,/g, ''));
-                        if (!isNaN(rate)) return rate;
-                    }
+                    if (usdData) return parseFloat(usdData.deal_bas_r.replace(/,/g, ''));
                 }
                 return await getKeximRateRecursive(attempt + 1);
-            } catch (e) {
-                console.warn(`KEXIM fetch failed for ${searchDate}`, e);
-                return await getKeximRateRecursive(attempt + 1);
-            }
+            } catch (e) { return await getKeximRateRecursive(attempt + 1); }
         }
 
-        // Alpha Vantage API 재시도 및 키 교체 로직 (수정됨)
         async function fetchAlphaVantage(fn, ticker, initialKeyIndex, retries = 5) {
             let currentKeyIndex = initialKeyIndex;
-            
             for (let i = 0; i <= retries; i++) {
-                // 키 인덱스를 순환하며 선택
                 const apiKey = ALPHA_VANTAGE_API_KEYS[currentKeyIndex % ALPHA_VANTAGE_API_KEYS.length];
                 const url = `https://www.alphavantage.co/query?function=${fn}&symbol=${ticker}&apikey=${apiKey}`;
-                const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-                
                 try {
-                    const res = await fetch(proxyUrl);
+                    const res = await fetch(url);
                     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                     const data = await res.json();
-                    
-                    // API 한도 초과 체크 (키 교체 시도)
                     if (data['Information'] || data['Note']) {
-                        console.warn(`Rate Limit hit for ${fn} with key ...${apiKey.slice(-4)}. Retrying with next key...`);
-                        
+                        console.warn(`Limit hit (${fn}). Switching key...`);
                         if (i < retries) {
-                            // 다음 키로 변경
                             currentKeyIndex++;
-                            // 1초 대기 후 재시도
                             await new Promise(resolve => setTimeout(resolve, 1000));
                             continue;
-                        } else {
-                            // 재시도 횟수 초과 시 실패 데이터 반환
-                            return data;
                         }
                     }
                     return data;
                 } catch (e) {
-                    console.warn(`Fetch failed for ${fn}:`, e);
                     if (i < retries) {
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         continue;
@@ -413,7 +424,7 @@
                     throw e;
                 }
             }
-            throw new Error("All retries exhausted");
+            return { 'Error Message': 'Max retries exceeded' };
         }
 
         async function searchFilings() {
@@ -422,205 +433,89 @@
                 showError('티커를 입력하세요.');
                 return;
             }
-
-            // UI 초기화
             showLoader(true);
             showError(null);
-            resultsList.innerHTML = '';
-            exchangeRateInfo.classList.add('hidden');
-            resultsHeaderContainer.classList.add('hidden');
-            aiSummaryArea.classList.add('hidden');
-            aiSummaryContent.classList.add('hidden');
-            aiError.classList.add('hidden');
-            aiSummaryButton.classList.add('hidden');
-            optionsArea.classList.add('hidden'); 
-            summaryCard.classList.add('hidden');
-
-            // "데이터 로드 중..." 텍스트 제거됨 (스피너만 표시)
-            
+            resetUI();
+            fetchedData = null;
 
             try {
-                // 1. Alpha Vantage API 호출
                 const functions = ['INCOME_STATEMENT', 'BALANCE_SHEET', 'EARNINGS', 'OVERVIEW', 'GLOBAL_QUOTE'];
-                
-                // 요청을 동시에 보내지 않고 순차적으로 보내거나 약간의 지연을 둠
                 const promises = functions.map(async (fn, index) => {
-                    // 동시 요청 폭주 방지를 위한 초기 지연 (0ms, 500ms, 1000ms ...)
-                    await new Promise(resolve => setTimeout(resolve, index * 500));
+                    await new Promise(resolve => setTimeout(resolve, index * 600));
                     return fetchAlphaVantage(fn, ticker, index);
                 });
-
-                // 2. 환율 정보
                 const exchangeRatePromise = getExchangeRate();
-
                 const results = await Promise.all([...promises, exchangeRatePromise]);
-                
-                const incomeData = results[0];
-                const balanceData = results[1];
-                const earningsData = results[2];
-                const overviewData = results[3];
-                const quoteData = results[4];
-                const exchangeRateData = results[5]; 
+                const [incomeData, balanceData, earningsData, overviewData, quoteData, exchangeRateData] = results;
 
-                // 3. API 응답 유효성 검사
-                let errorMsg = '';
-                let isLimitError = false;
+                const getError = (d, name) => {
+                    if (!d) return `${name} 데이터 없음`;
+                    if (d['Error Message']) return d['Error Message'];
+                    if (d['Information'] || d['Note']) return 'API 한도 초과';
+                    return null;
+                };
+                const errorMsg = getError(incomeData, '수익') || getError(balanceData, '대차대조표') || 
+                                 getError(earningsData, 'EPS') || getError(overviewData, '개요') || getError(quoteData, '주가');
+                if (errorMsg) throw new Error(errorMsg.includes('limit') || errorMsg === 'API 한도 초과' ? 'API 한도 초과' : errorMsg);
+                if (!incomeData.annualReports && !incomeData.quarterlyReports) throw new Error('재무 데이터를 찾을 수 없습니다.');
 
-                if (incomeData['Error Message'] || incomeData['Information']) {
-                     errorMsg = incomeData['Error Message'] || incomeData['Information'];
-                     isLimitError = !!incomeData['Information'];
-                } else if (balanceData['Error Message'] || balanceData['Information']) {
-                     errorMsg = balanceData['Error Message'] || balanceData['Information'];
-                     isLimitError = !!balanceData['Information'];
-                } else if (earningsData['Error Message'] || earningsData['Information']) {
-                     errorMsg = earningsData['Error Message'] || earningsData['Information'];
-                     isLimitError = !!earningsData['Information'];
-                } else if (overviewData['Error Message'] || overviewData['Information']) {
-                     errorMsg = overviewData['Error Message'] || overviewData['Information'];
-                     isLimitError = !!overviewData['Information'];
-                } else if (quoteData['Error Message'] || quoteData['Information']) {
-                     errorMsg = quoteData['Error Message'] || quoteData['Information'];
-                     isLimitError = !!quoteData['Information'];
-                }
-
-                if (errorMsg) {
-                    if (isLimitError) {
-                        throw new Error('API 한도 초과'); 
-                    } else {
-                        throw new Error(errorMsg);
-                    }
-                }
-
-                // 데이터 누락 체크
-                if ((!incomeData.annualReports && !incomeData.quarterlyReports) || 
-                    (!balanceData.annualReports && !balanceData.quarterlyReports)) {
-                     throw new Error('필수 재무 데이터를 찾을 수 없습니다.');
-                }
-                
-                // 4. 환율 적용
                 usdToKrwRate = exchangeRateData.rate;
-                console.log(`Exchange Rate Applied: ${usdToKrwRate} (${exchangeRateData.source})`);
-                
                 document.querySelector('input[name="currency"][value="krw"]').disabled = false;
 
-                // 5. 전역 변수에 데이터 저장
-                fetchedData = {
-                    ticker: ticker,
-                    income: incomeData,
-                    balance: balanceData,
-                    earnings: earningsData,
-                    overview: overviewData,
-                    quote: quoteData['Global Quote'],
-                    exchangeSource: exchangeRateData.source
-                };
-
-                // 6. 결과 표시
+                fetchedData = { ticker, income: incomeData, balance: balanceData, earnings: earningsData, overview: overviewData, quote: quoteData['Global Quote'] || {}, exchangeSource: exchangeRateData.source };
                 optionsArea.classList.remove('hidden'); 
                 displayResults(ticker, fetchedData);
-                updateExchangeRateInfo(fetchedData.exchangeSource, usdToKrwRate);
-
+                updateExchangeRateInfo(fetchedData.exchangeSource);
             } catch (error) {
-                console.error('Error fetching data:', error);
-                let errorMessage = error.message;
-                let isLimitError = false;
-
-                if (errorMessage.includes('API 한도 초과') || errorMessage.includes('limit') || errorMessage.includes('Information') || errorMessage.includes('Thank you')) {
-                    errorMessage = 'API 호출 한도를 초과했습니다.<br>잠시 후 다시 시도해주세요.';
-                    isLimitError = true;
+                let msg = error.message;
+                let showBtn = false;
+                if (msg.includes('API 한도') || msg.includes('limit')) {
+                    msg = 'API 호출 한도를 초과했습니다.<br>잠시 후 다시 시도해주세요.';
+                    showBtn = true;
                 }
-                
-                showError(errorMessage, isLimitError);
+                showError(msg, showBtn);
             } finally {
                 showLoader(false);
             }
         }
 
-        // Gemini API 호출 함수
-        async function callGeminiApi(prompt, retries = 3, delay = 1000) {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
-            
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                    })
-                });
-
-                if (!response.ok) {
-                    if ((response.status === 429 || response.status >= 500) && retries > 0) {
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        return callGeminiApi(prompt, retries - 1, delay * 2);
-                    }
-                    throw new Error(`API Error: ${response.status}`);
-                }
-
+        // Gemini AI
+        async function callGeminiApi(prompt) {
+             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
+             try {
+                const response = await fetch(apiUrl, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
                 const result = await response.json();
-                const candidate = result.candidates?.[0];
-                
-                if (candidate && candidate.content?.parts?.[0]?.text) {
-                    return candidate.content.parts[0].text;
-                } else {
-                    throw new Error('API 응답에서 유효한 텍스트를 찾을 수 없습니다.');
-                }
-            } catch (error) {
-                console.error('Gemini API 오류:', error);
-                if (retries > 0) {
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    return callGeminiApi(prompt, retries - 1, delay * 2);
-                }
-                throw error;
-            }
+                return result.candidates?.[0]?.content?.parts?.[0]?.text || "AI 응답 오류";
+             } catch(e) { return "AI 요청 실패"; }
         }
 
-        // AI 요약 생성 함수
         async function generateAiSummary(ticker, keyMetrics, yearHeaders, allData) {
             aiSummaryArea.classList.remove('hidden');
             aiLoader.classList.remove('hidden');
             aiSummaryContent.classList.add('hidden');
             aiError.classList.add('hidden');
             aiSummaryButton.disabled = true;
-
             try {
                 const currentTf = currentTimeframe === 'annual' ? '연간' : '분기';
                 const currentCur = currentCurrency === 'usd' ? 'USD' : 'KRW';
                 let dataForPrompt = `${ticker}의 ${currentTf} 재무 데이터 (${currentCur} 기준):\n\n`;
-                
                 const yearsToShow = [...yearHeaders.slice(0, 5), ...yearHeaders.slice(-2)];
                 const uniqueDates = Array.from(new Set(yearsToShow));
-
                 for (const metric of keyMetrics) {
                     dataForPrompt += `${metric.label}:\n`;
                     for (const dateHeader of uniqueDates) {
                         const rawValue = metric.getValue(dateHeader, allData);
                         const numValue = (rawValue === 'None' || rawValue === 'N/A' || rawValue === undefined) ? 'N/A' : parseFloat(rawValue);
-                        
                         if (numValue !== 'N/A') {
                             dataForPrompt += `  - ${dateHeader}: ${formatNumber(numValue, metric.format)}\n`;
                         }
                     }
                 }
-
-                const prompt = `
-당신은 전문 재무 분석가입니다. 제공된 재무 데이터를 바탕으로 이 기업의 장기적인 성과에 대해 한국어로 3-5문장의 간결하고 중립적인 요약을 작성해 주세요.
-
-제공된 데이터:
-${dataForPrompt}
-
-요약 작성 시 다음 사항에 집중해 주세요:
-- 매출과 영업이익, 영업이익율의 전반적인 추세
-- 가장 오래된 데이터와 최신 데이터를 비교한 성장 규모
-- 투자 조언이나 미래 예측은 절대 하지 마세요.
-
-요약:
-`;
+                const prompt = `당신은 전문 재무 분석가입니다. 제공된 재무 데이터를 바탕으로 이 기업의 장기적인 성과에 대해 한국어로 3-5문장의 간결하고 중립적인 요약을 작성해 주세요.\n\n제공된 데이터:\n${dataForPrompt}\n\n요약:`;
                 const summaryText = await callGeminiApi(prompt);
                 aiSummaryText.textContent = summaryText;
                 aiSummaryContent.classList.remove('hidden');
-
             } catch (error) {
-                console.error('AI 요약 실패:', error);
                 aiError.textContent = `AI 요약 생성 실패: ${error.message}`;
                 aiError.classList.remove('hidden');
             } finally {
@@ -632,164 +527,160 @@ ${dataForPrompt}
         function displayResults(ticker, allData) {
             const { income, balance, earnings, overview, quote } = allData;
             
-            // 헤더는 데이터가 로드된 후에만 표시
-            resultsHeader.textContent = '재무 제표';
             resultsHeaderContainer.classList.remove('hidden');
             resultsHeaderContainer.classList.add('flex');
-            updateExchangeRateInfo(fetchedData.exchangeSource);
-
-            // 요약 카드 정보 업데이트
             summaryCard.classList.remove('hidden');
-            companyName.textContent = overview.Name || ticker;
+            
+            companyName.textContent = overview?.Name || ticker;
             companyTicker.textContent = ticker;
             
-            // 실시간 시가총액 계산
             const price = parseFloat(quote['05. price']);
-            const shares = parseFloat(overview.SharesOutstanding);
+            const shares = parseFloat(overview?.SharesOutstanding);
+            const changePercent = parseFloat((quote['10. change percent'] || '0').replace('%', ''));
             
-            let mktCap = parseFloat(overview.MarketCapitalization);
-            if (price && shares) {
-                mktCap = price * shares;
-            }
-
+            priceChange.textContent = `${changePercent >= 0 ? '▲' : '▼'} ${Math.abs(changePercent).toFixed(2)}%`;
+            priceChange.className = `text-xs md:text-sm font-bold px-2 py-0.5 rounded whitespace-nowrap ${changePercent >= 0 ? 'text-red-600 bg-red-50' : changePercent < 0 ? 'text-blue-600 bg-blue-50' : 'text-gray-600 bg-gray-50'}`;
+            currentPrice.className = `text-2xl md:text-3xl font-bold tracking-tight ${changePercent >= 0 ? 'text-red-600' : changePercent < 0 ? 'text-blue-600' : 'text-gray-800'}`;
+            
+            let mktCap = parseFloat(overview?.MarketCapitalization);
+            if (price && shares) mktCap = price * shares;
             currentPrice.textContent = formatPrice(price);
             marketCap.textContent = formatNumber(mktCap);
 
-            const incomeReports = currentTimeframe === 'annual' ? income.annualReports : income.quarterlyReports;
+            const reports = currentTimeframe === 'annual' ? income.annualReports : income.quarterlyReports;
+            if (!reports || reports.length === 0) {
+                showError('해당 기간의 데이터가 없습니다.');
+                return;
+            }
+
+            const yearHeaders = reports.map(d => d.fiscalDateEnding);
+            
+            let html = `
+                <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                <table class="w-full min-w-max text-left border-collapse">
+                    <thead class="bg-gray-100"><tr>
+                        <th class="p-3 border-b border-gray-300 font-semibold text-gray-700 sticky left-0 z-10 bg-gray-100 whitespace-nowrap">지표</th>`;
+            
+            yearHeaders.forEach(date => {
+                 html += `<th class="p-3 border-b border-gray-300 font-semibold text-gray-700 text-center whitespace-nowrap">
+                    <span class="block">${date.substring(0, 4)}</span>
+                    <span class="block text-xs font-normal text-gray-500">${formatDate(date)}</span>
+                </th>`;
+            });
+            html += `</tr></thead><tbody>`;
+
             const keyMetrics = [
                 { 
                     label: '매출', 
+                    key: 'totalRevenue', 
                     format: 'default',
-                    getValue: (year, data) => {
-                        const reports = currentTimeframe === 'annual' ? data.income.annualReports : data.income.quarterlyReports;
-                        const report = reports.find(d => d.fiscalDateEnding === year);
-                        return report ? report.totalRevenue : 'N/A';
-                    }
+                    getValue: (d, all) => (currentTimeframe==='annual'?all.income.annualReports:all.income.quarterlyReports).find(r=>r.fiscalDateEnding===d)?.totalRevenue 
                 },
                 { 
                     label: '영업이익', 
+                    key: 'operatingIncome', 
                     format: 'default',
-                    getValue: (year, data) => {
-                        const reports = currentTimeframe === 'annual' ? data.income.annualReports : data.income.quarterlyReports;
-                        const report = reports.find(d => d.fiscalDateEnding === year);
-                        return report ? report.operatingIncome : 'N/A';
-                    }
+                    getValue: (d, all) => (currentTimeframe==='annual'?all.income.annualReports:all.income.quarterlyReports).find(r=>r.fiscalDateEnding===d)?.operatingIncome
                 },
                 { 
                     label: '영업이익율', 
+                    computed: (r) => {
+                        const rev = parseFloat(r.totalRevenue);
+                        const op = parseFloat(r.operatingIncome);
+                        return (rev && op) ? op/rev : null; 
+                    }, 
                     format: 'percent',
-                    getValue: (year, data) => {
-                        const reports = currentTimeframe === 'annual' ? data.income.annualReports : data.income.quarterlyReports;
-                        const report = reports.find(d => d.fiscalDateEnding === year);
-                        if (!report) return 'N/A';
-                        const revenue = parseFloat(report.totalRevenue);
-                        const opIncome = parseFloat(report.operatingIncome);
-                        if (revenue && opIncome && revenue !== 0) {
-                            return (opIncome / revenue);
-                        }
-                        return 'N/A';
+                    getValue: (d, all) => {
+                        const r = (currentTimeframe==='annual'?all.income.annualReports:all.income.quarterlyReports).find(rep=>rep.fiscalDateEnding===d);
+                        if(!r) return null;
+                        return (parseFloat(r.operatingIncome)/parseFloat(r.totalRevenue));
                     }
                 },
                 { 
                     label: '시가총액 / 영업이익', 
+                    computed: (r) => {
+                        const op = parseFloat(r.operatingIncome);
+                        if(!op || op===0) return null;
+                        return mktCap / (currentTimeframe === 'quarterly' ? op * 4 : op);
+                    }, 
                     format: 'ratio',
-                    getValue: (year, data) => {
-                        const reports = currentTimeframe === 'annual' ? data.income.annualReports : data.income.quarterlyReports;
-                        const opIncomeReport = reports.find(d => d.fiscalDateEnding === year);
-                        
-                        const price = parseFloat(data.quote['05. price']);
-                        const shares = parseFloat(data.overview.SharesOutstanding);
-                        let currentMktCap = parseFloat(data.overview.MarketCapitalization);
-                        if (price && shares) {
-                            currentMktCap = price * shares;
-                        }
-
-                        if (!opIncomeReport || !currentMktCap) return 'N/A';
-                        
-                        let opIncome = parseFloat(opIncomeReport.operatingIncome);
-                        if (!opIncome || opIncome === 0) return 'N/A';
-
-                        if (currentTimeframe === 'quarterly') {
-                            opIncome = opIncome * 4;
-                        }
-
-                        if (opIncome !== 0) {
-                            return (currentMktCap / opIncome);
-                        }
-                        return 'N/A';
+                    getValue: (d, all) => {
+                        const r = (currentTimeframe==='annual'?all.income.annualReports:all.income.quarterlyReports).find(rep=>rep.fiscalDateEnding===d);
+                        if(!r) return null;
+                        const op = parseFloat(r.operatingIncome);
+                        if(!op || op===0) return null;
+                        return mktCap / (currentTimeframe === 'quarterly' ? op * 4 : op);
                     }
                 }
             ];
-            
-            resultsList.innerHTML = '';
 
-            if (!incomeReports || incomeReports.length === 0) {
-                showError(`'${currentTimeframe === 'annual' ? '연간' : '분기'}' 데이터를 찾을 수 없습니다.`);
-                return;
-            }
+            keyMetrics.forEach(metric => {
+                html += `<tr class="even:bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <td class="p-3 border-b border-gray-200 font-medium text-gray-800 sticky left-0 z-10 bg-white even:bg-gray-50 hover:bg-gray-100 whitespace-nowrap shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">${metric.label}</td>`;
+                
+                yearHeaders.forEach((date, colIndex) => {
+                    let val = metric.getValue(date, allData);
+                    
+                    // YoY Calculation Logic
+                    let growthHtml = '';
+                    // Skip YoY for 'Market Cap / Op Income' (last metric)
+                    if (metric.label !== '시가총액 / 영업이익') {
+                        const prevIndex = colIndex + (currentTimeframe === 'annual' ? 1 : 4);
+                        if (prevIndex < yearHeaders.length) {
+                            const prevDate = yearHeaders[prevIndex];
+                            const prevVal = metric.getValue(prevDate, allData);
+                            
+                            if (val !== null && prevVal !== null && !isNaN(val) && !isNaN(prevVal) && prevVal != 0) {
+                                let change, changeStr, colorClass;
+                                
+                                if (metric.format === 'percent') {
+                                    // Margin: Point difference (%p)
+                                    change = (val - prevVal) * 100; 
+                                    colorClass = change > 0 ? 'text-red-500' : change < 0 ? 'text-blue-500' : 'text-gray-400';
+                                    changeStr = `${change > 0 ? '▲' : change < 0 ? '▼' : ''} ${Math.abs(change).toFixed(1)}%p`;
+                                } else {
+                                    // Revenue/Income: Growth rate (%)
+                                    change = ((val - prevVal) / Math.abs(prevVal)) * 100;
+                                    colorClass = change > 0 ? 'text-red-500' : change < 0 ? 'text-blue-500' : 'text-gray-400';
+                                    changeStr = `${change > 0 ? '▲' : change < 0 ? '▼' : ''} ${Math.abs(change).toFixed(1)}%`;
+                                }
+                                
+                                growthHtml = `<span class="block text-xs ${colorClass} mt-1 font-semibold">${changeStr}</span>`;
+                            }
+                        }
+                    }
 
-            const yearHeaders = incomeReports.map(d => d.fiscalDateEnding);
-            
-            const tableWrapper = document.createElement('div');
-            tableWrapper.className = 'overflow-x-auto rounded-lg border border-gray-200 shadow-sm';
-            
-            const table = document.createElement('table');
-            table.className = 'w-full min-w-max text-left border-collapse';
-
-            const thead = document.createElement('thead');
-            thead.className = 'bg-gray-100';
-            const headerRow = document.createElement('tr');
-            headerRow.innerHTML = `<th class="p-3 border-b border-gray-300 font-semibold text-gray-700 sticky left-0 z-10 bg-gray-100">지표</th>`;
-            
-            yearHeaders.forEach(date => {
-                const year = new Date(date).getFullYear();
-                headerRow.innerHTML += `<th class="p-3 border-b border-gray-300 font-semibold text-gray-700 text-center">
-                    <span class="block">${year}</span>
-                    <span class="block text-xs font-normal text-gray-500">${formatDate(date)}</span>
-                </th>`;
+                    html += `<td class="p-3 border-b border-gray-200 text-right font-mono whitespace-nowrap align-top">
+                        <div>${formatNumber(val, metric.format)}</div>
+                        ${growthHtml}
+                    </td>`;
+                });
+                html += `</tr>`;
             });
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
 
-            const tbody = document.createElement('tbody');
-
-            for (const metric of keyMetrics) {
-                const row = document.createElement('tr');
-                row.className = 'even:bg-gray-50 hover:bg-gray-100 transition-colors';
-                
-                row.innerHTML = `<td class="p-3 border-b border-gray-200 font-medium text-gray-800 sticky left-0 z-10 bg-white even:bg-gray-50 hover:bg-gray-100">${metric.label}</td>`;
-                
-                for (const dateHeader of yearHeaders) {
-                    const rawValue = metric.getValue(dateHeader, allData);
-                    const value = formatNumber(rawValue, metric.format);
-
-                    const valueDisplay = (value === 'N/A') ? '<span class="text-gray-400">N/A</span>' : value;
-                    row.innerHTML += `<td class="p-3 border-b border-gray-200 text-right font-mono">${valueDisplay}</td>`;
-                }
-                tbody.appendChild(row);
-            }
-            
-            table.appendChild(tbody);
-            tableWrapper.appendChild(table);
-            resultsList.appendChild(tableWrapper);
+            html += `</tbody></table></div>`;
+            resultsList.innerHTML = html;
 
             aiSummaryButton.classList.remove('hidden');
             aiSummaryButton.onclick = () => generateAiSummary(ticker, keyMetrics, yearHeaders, allData);
         }
 
+        function resetUI() {
+            resultsList.innerHTML = '';
+            exchangeRateInfo.classList.add('hidden');
+            resultsHeaderContainer.classList.add('hidden');
+            aiSummaryArea.classList.add('hidden');
+            aiSummaryContent.classList.add('hidden');
+            aiError.classList.add('hidden');
+            aiSummaryButton.classList.add('hidden');
+            optionsArea.classList.add('hidden'); 
+            summaryCard.classList.add('hidden');
+        }
+
         function resetApp() {
             showError(null);
             loader.classList.add('hidden');
-            
-            // 모든 결과 영역 숨기기 (초기 상태로 복귀)
-            summaryCard.classList.add('hidden');
-            optionsArea.classList.add('hidden');
-            resultsHeaderContainer.classList.add('hidden');
-            aiSummaryArea.classList.add('hidden');
-            exchangeRateInfo.classList.add('hidden');
-            resultsList.innerHTML = '';
-            
-            // 입력창 초기화 및 포커스
+            resetUI();
             tickerInput.value = '';
             tickerInput.focus();
         }
@@ -798,12 +689,9 @@ ${dataForPrompt}
             if (message) {
                 errorMessage.innerHTML = `
                     <div class="flex flex-col items-center">
-                        <p class="font-medium">${message}</p>
-                        ${withButton ? `
-                        <button onclick="resetApp()" class="mt-4 bg-white text-red-600 border border-red-200 px-6 py-2 rounded-lg font-semibold hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors shadow-sm">
-                            돌아가기
-                        </button>
-                        ` : ''}
+                        <p class="font-medium mb-2">⚠️ 오류</p>
+                        <p class="text-sm text-gray-700 mb-4">${message}</p>
+                        ${withButton ? `<button onclick="resetApp()" class="bg-white text-red-600 border border-red-200 px-6 py-2 rounded-lg text-sm font-bold shadow-sm">돌아가기</button>` : ''}
                     </div>
                 `;
                 errorMessage.classList.remove('hidden');
@@ -813,13 +701,9 @@ ${dataForPrompt}
         }
 
         function showLoader(show) {
-            if (show) {
-                loader.classList.remove('hidden');
-            } else {
-                loader.classList.add('hidden');
-            }
+            if (show) loader.classList.remove('hidden');
+            else loader.classList.add('hidden');
         }
-
     </script>
 </body>
 </html>
