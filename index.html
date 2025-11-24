@@ -6,6 +6,8 @@
     <title>기업 실적 검색기</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -33,7 +35,6 @@
         .overflow-x-auto {
             -webkit-overflow-scrolling: touch;
         }
-        /* 자동완성 스크롤바 커스텀 */
         #autocomplete-list::-webkit-scrollbar {
             width: 6px;
         }
@@ -44,6 +45,24 @@
         #autocomplete-list::-webkit-scrollbar-track {
             background-color: #f1f5f9;
         }
+        /* 슬라이더 스타일 커스텀 */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            margin-top: -4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans py-6 px-4 sm:px-6 lg:px-8">
@@ -53,16 +72,12 @@
         
         <!-- 검색 폼 -->
         <div class="flex flex-col sm:flex-row gap-3 mb-6 md:mb-8 relative">
-            <!-- 입력창 래퍼 -->
             <div class="relative flex-grow">
                 <input type="text" id="tickerInput" placeholder="티커 또는 회사명 입력 (예: AAPL, Apple)" 
                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow text-lg" 
                        autocomplete="off" autocapitalize="characters">
-                
-                <!-- 자동완성 목록 -->
                 <ul id="autocomplete-list" class="hidden absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto text-left"></ul>
             </div>
-
             <button id="searchButton" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-lg shadow-sm active:bg-blue-800">
                 검색
             </button>
@@ -70,12 +85,10 @@
 
         <!-- 로딩 및 결과 표시 영역 -->
         <div id="resultsArea">
-            <!-- 로딩 스피너 -->
             <div id="loader" class="hidden flex flex-col justify-center items-center h-24">
                 <div class="loader mb-3"></div>
             </div>
 
-            <!-- 에러 메시지 -->
             <div id="errorMessage" class="hidden text-center text-red-600 p-4 md:p-6 bg-red-50 rounded-lg border border-red-100 shadow-sm break-keep"></div>
 
             <!-- 요약 정보 카드 -->
@@ -100,8 +113,8 @@
             </div>
 
             <!-- 옵션 라디오 버튼 -->
-            <div id="optionsArea" class="hidden flex flex-col sm:flex-row justify-between sm:justify-end gap-4 md:gap-6 mb-4 transition-opacity duration-500 ease-in-out bg-gray-50 p-4 rounded-lg border border-gray-100 text-sm">
-                <fieldset class="flex-1 sm:flex-none">
+            <div id="optionsArea" class="hidden flex flex-col sm:flex-row justify-between items-center gap-4 md:gap-6 mb-4 transition-opacity duration-500 ease-in-out bg-gray-50 p-4 rounded-lg border border-gray-100 text-sm">
+                <fieldset class="flex-1 sm:flex-none w-full sm:w-auto">
                     <div class="flex justify-center sm:justify-start gap-4 items-center h-full">
                         <span class="font-medium text-gray-600 mr-1 whitespace-nowrap">기간:</span>
                         <label class="flex items-center space-x-2 cursor-pointer hover:text-blue-600 transition-colors py-1">
@@ -114,10 +127,11 @@
                         </label>
                     </div>
                 </fieldset>
-                <div class="hidden sm:block w-px bg-gray-300 mx-2"></div>
+
                 <div class="block sm:hidden h-px bg-gray-200 w-full"></div>
-                <fieldset class="flex-1 sm:flex-none">
-                    <div class="flex justify-center sm:justify-start gap-4 items-center h-full">
+
+                <fieldset class="flex-1 sm:flex-none w-full sm:w-auto">
+                    <div class="flex justify-center sm:justify-end gap-4 items-center h-full">
                         <span class="font-medium text-gray-600 mr-1 whitespace-nowrap">통화:</span>
                         <label class="flex items-center space-x-2 cursor-pointer hover:text-blue-600 transition-colors py-1">
                             <input type="radio" name="currency" value="usd" class="form-radio text-blue-600 focus:ring-blue-500 w-4 h-4" checked>
@@ -134,31 +148,35 @@
             <!-- 환율 정보 -->
             <div id="exchangeRateInfo" class="hidden mb-6 text-right text-xs text-gray-400 italic pr-1"></div>
 
-            <!-- 결과 헤더 -->
+            <!-- 결과 헤더 및 컨트롤 -->
             <div id="resultsHeaderContainer" class="hidden flex-col md:flex-row items-center justify-between mb-4 gap-4 border-t border-gray-200 pt-6">
-                <h2 id="resultsHeader" class="text-xl font-semibold text-gray-700 w-full md:w-auto text-center md:text-left">재무 제표</h2>
-                <button id="aiSummaryButton" class="hidden w-full md:w-auto bg-gradient-to-r from-purple-500 to-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold hover:from-purple-600 hover:to-blue-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all shadow-md text-sm">
-                    ✨ AI 재무 요약
-                </button>
-            </div>
-
-            <!-- AI 요약 결과 -->
-            <div id="aiSummaryArea" class="hidden mb-6">
-                <div id="aiLoader" class="hidden flex items-center justify-center p-4 bg-gray-50 rounded-lg">
-                    <div class="loader border-2 w-6 h-6 mr-3"></div>
-                    <span class="text-gray-600 text-sm">AI 분석 중...</span>
+                <div class="flex items-center gap-3 w-full md:w-auto justify-center md:justify-start">
+                    <h2 id="resultsHeader" class="text-xl font-semibold text-gray-700 text-center md:text-left">재무 제표</h2>
+                    <button id="toggleLayoutBtn" class="flex items-center gap-1 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 px-2 py-1 rounded text-xs font-medium transition-colors shadow-sm h-7">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span id="layoutBtnText">행/열 전환</span>
+                    </button>
                 </div>
-                <div id="aiSummaryContent" class="hidden p-5 bg-blue-50 border-l-4 border-blue-400 rounded-lg shadow-sm">
-                    <h3 class="font-bold text-blue-800 mb-3 flex items-center">
-                        <span class="text-xl mr-2">🤖</span> AI 재무 요약
-                    </h3>
-                    <p id="aiSummaryText" class="text-gray-800 whitespace-pre-wrap leading-relaxed text-sm md:text-base"></p>
+                
+                <!-- 연도 선택 슬라이더 -->
+                <div id="sliderContainer" class="flex items-center gap-3 w-full md:w-auto justify-center md:justify-end bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                    <span id="sliderLabel" class="text-sm font-medium text-gray-700 whitespace-nowrap w-20 text-right">최근 10년</span>
+                    <input type="range" id="yearSlider" min="1" max="20" value="10" class="w-32 h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600">
                 </div>
-                <div id="aiError" class="hidden p-4 bg-red-50 text-red-700 rounded-lg text-sm"></div>
             </div>
 
             <!-- 결과 목록 -->
             <div id="resultsList" class="space-y-4"></div>
+
+            <!-- 차트 영역 -->
+            <div id="chartContainer" class="hidden mt-8 p-4 md:p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">실적 추이</h3>
+                <div class="relative h-64 md:h-80 w-full">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -171,30 +189,24 @@
         const resultsHeaderContainer = document.getElementById('resultsHeaderContainer');
         const resultsHeader = document.getElementById('resultsHeader');
         const resultsList = document.getElementById('resultsList');
-        const aiSummaryButton = document.getElementById('aiSummaryButton');
-        const aiSummaryArea = document.getElementById('aiSummaryArea');
-        const aiLoader = document.getElementById('aiLoader');
-        const aiSummaryContent = document.getElementById('aiSummaryContent');
-        const aiSummaryText = document.getElementById('aiSummaryText');
-        const aiError = document.getElementById('aiError');
         const exchangeRateInfo = document.getElementById('exchangeRateInfo');
         const optionsArea = document.getElementById('optionsArea');
         const autocompleteList = document.getElementById('autocomplete-list');
-        
+        const toggleLayoutBtn = document.getElementById('toggleLayoutBtn');
+        const layoutBtnText = document.getElementById('layoutBtnText');
+        const sliderContainer = document.getElementById('sliderContainer');
+        const yearSlider = document.getElementById('yearSlider');
+        const sliderLabel = document.getElementById('sliderLabel');
         const summaryCard = document.getElementById('summaryCard');
         const companyName = document.getElementById('companyName');
         const companyTicker = document.getElementById('companyTicker');
         const currentPrice = document.getElementById('currentPrice');
         const priceChange = document.getElementById('priceChange');
         const marketCap = document.getElementById('marketCap');
+        const chartContainer = document.getElementById('chartContainer');
 
         // --- 2. API 설정 ---
-        const GEMINI_API_KEY = "";
-        const ALPHA_VANTAGE_API_KEYS = [
-            "IOLM32O12PSE4LDJ", 
-            "Q3H5NC59JKHFVB7X",
-            "5I1RLIUUUEEM3LSR"
-        ];
+        const ALPHA_VANTAGE_API_KEYS = ["IOLM32O12PSE4LDJ", "Q3H5NC59JKHFVB7X", "5I1RLIUUUEEM3LSR"];
         const KEXIM_API_KEY = "ixCOgz4fZCVMO1h0wypjsh6r75on2HlP"; 
 
         // --- 3. 전역 상태 ---
@@ -203,6 +215,8 @@
         let usdToKrwRate = 1430; 
         let fetchedData = null; 
         let tickerList = []; 
+        let isVerticalView = true; 
+        let myChart = null;
 
         // --- 4. 초기화 및 이벤트 리스너 ---
         window.addEventListener('DOMContentLoaded', async () => {
@@ -214,21 +228,15 @@
                 const response = await fetch('https://corsproxy.io/?https://www.sec.gov/files/company_tickers.json');
                 const data = await response.json();
                 tickerList = Object.values(data);
-                console.log(`Loaded ${tickerList.length} companies.`);
-            } catch (e) {
-                console.warn("Ticker load failed", e);
-            }
+            } catch (e) { console.warn("Ticker load failed", e); }
         }
 
         tickerInput.addEventListener('input', function() {
             const val = this.value;
             closeAutocomplete();
             if (!val || val.length < 1) return;
-            
             const matches = filterCompanies(val);
-            if (matches.length > 0) {
-                showAutocomplete(matches);
-            }
+            if (matches.length > 0) showAutocomplete(matches);
         });
 
         tickerInput.addEventListener('focus', function() {
@@ -239,17 +247,13 @@
         });
 
         document.addEventListener('click', function(e) {
-            if (e.target !== tickerInput && e.target.parentNode !== autocompleteList) {
-                closeAutocomplete();
-            }
+            if (e.target !== tickerInput && e.target.parentNode !== autocompleteList) closeAutocomplete();
         });
 
         function filterCompanies(query) {
             if (!tickerList.length) return [];
             const q = query.toUpperCase();
-            return tickerList.filter(c => 
-                c.ticker.startsWith(q) || c.title.toUpperCase().includes(q)
-            ).slice(0, 10); 
+            return tickerList.filter(c => c.ticker.startsWith(q) || c.title.toUpperCase().includes(q)).slice(0, 10); 
         }
 
         function showAutocomplete(matches) {
@@ -257,12 +261,7 @@
             matches.forEach(match => {
                 const li = document.createElement('li');
                 li.className = "px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex justify-between items-center";
-                li.innerHTML = `
-                    <div>
-                        <span class="font-bold text-gray-800 w-16 inline-block">${match.ticker}</span>
-                        <span class="text-sm text-gray-600 truncate max-w-[200px] sm:max-w-xs inline-block align-bottom">${match.title}</span>
-                    </div>
-                `;
+                li.innerHTML = `<div><span class="font-bold text-gray-800 w-16 inline-block">${match.ticker}</span><span class="text-sm text-gray-600 truncate max-w-[200px] sm:max-w-xs inline-block align-bottom">${match.title}</span></div>`;
                 li.addEventListener('click', () => {
                     tickerInput.value = match.ticker;
                     closeAutocomplete();
@@ -289,6 +288,13 @@
         document.querySelectorAll('input[name="timeframe"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 currentTimeframe = e.target.value;
+                if (currentTimeframe === 'annual') {
+                    yearSlider.value = 10;
+                    sliderLabel.textContent = `최근 10년`;
+                } else {
+                    yearSlider.value = 3; 
+                    sliderLabel.textContent = `최근 3년`;
+                }
                 if (fetchedData) displayResults(fetchedData.ticker, fetchedData);
             });
         });
@@ -303,14 +309,23 @@
             });
         });
 
+        toggleLayoutBtn.addEventListener('click', () => {
+            isVerticalView = !isVerticalView;
+            if (fetchedData) displayResults(fetchedData.ticker, fetchedData);
+        });
+
+        yearSlider.addEventListener('input', (e) => {
+            const years = e.target.value;
+            sliderLabel.textContent = `최근 ${years}년`;
+            if (fetchedData) displayResults(fetchedData.ticker, fetchedData);
+        });
+
         // --- 5. 헬퍼 함수 ---
         function formatNumber(num, format = 'default') {
             if (num === null || num === undefined || num === 'N/A' || isNaN(num)) return 'N/A';
             num = parseFloat(num); 
-
             if (format === 'percent') return (num * 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
             if (format === 'ratio') return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'x';
-
             let value = num;
             if (currentCurrency === 'krw' && usdToKrwRate) {
                 value = num * usdToKrwRate;
@@ -329,18 +344,28 @@
         function formatPrice(num) {
             if (num === null || num === undefined || isNaN(num)) return '-';
             num = parseFloat(num);
-            
-            if (currentCurrency === 'krw' && usdToKrwRate) {
-                return (num * usdToKrwRate).toLocaleString('ko-KR', { maximumFractionDigits: 0 }) + '원';
-            }
+            if (currentCurrency === 'krw' && usdToKrwRate) return (num * usdToKrwRate).toLocaleString('ko-KR', { maximumFractionDigits: 0 }) + '원';
             return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
         function formatDate(dateStr) {
             if (!dateStr) return 'N/A';
+            try { return dateStr.substring(0, 4); } catch (e) { return dateStr; }
+        }
+        
+        function formatFullDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            try { return dateStr.substring(0, 10); } catch (e) { return dateStr; }
+        }
+
+        function getQuarter(dateStr, fiscalEndMonth) {
+            if (!dateStr) return '';
             try {
-                return dateStr.substring(0, 10);
-            } catch (e) { return dateStr; }
+                const month = parseInt(dateStr.substring(5, 7));
+                let diff = (month - fiscalEndMonth + 12) % 12;
+                if (diff === 0) diff = 12;
+                return 'Q' + Math.ceil(diff / 3);
+            } catch (e) { return ''; }
         }
 
         function updateExchangeRateInfo(source = '기본값') {
@@ -365,13 +390,11 @@
         async function getExchangeRate() {
             const keximRate = await getKeximRateRecursive();
             if (keximRate) return { rate: keximRate, source: '한국수출입은행' };
-
             try {
                 const res = await fetchWithTimeout('https://open.er-api.com/v6/latest/USD');
                 const json = await res.json();
                 if (json?.rates?.KRW) return { rate: json.rates.KRW, source: 'Open Exchange Rates' };
             } catch (e) { console.warn('Fallback API failed', e); }
-
             return { rate: 1430, source: '기본값 (API 연결 실패)' };
         }
 
@@ -385,7 +408,6 @@
             const searchDate = `${year}${month}${day}`;
             const url = `https://www.koreaexim.go.kr/site/program/financial/exchangeJSON?authkey=${KEXIM_API_KEY}&searchdate=${searchDate}&data=AP01`;
             const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-
             try {
                 const res = await fetchWithTimeout(proxyUrl, { timeout: 4000 });
                 if (!res.ok) throw new Error('Network error');
@@ -408,7 +430,6 @@
                     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                     const data = await res.json();
                     if (data['Information'] || data['Note']) {
-                        console.warn(`Limit hit (${fn}). Switching key...`);
                         if (i < retries) {
                             currentKeyIndex++;
                             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -464,6 +485,15 @@
 
                 fetchedData = { ticker, income: incomeData, balance: balanceData, earnings: earningsData, overview: overviewData, quote: quoteData['Global Quote'] || {}, exchangeSource: exchangeRateData.source };
                 optionsArea.classList.remove('hidden'); 
+                
+                if (currentTimeframe === 'annual') {
+                    yearSlider.value = 10;
+                    sliderLabel.textContent = `최근 10년`;
+                } else {
+                    yearSlider.value = 3; 
+                    sliderLabel.textContent = `최근 3년`;
+                }
+
                 displayResults(ticker, fetchedData);
                 updateExchangeRateInfo(fetchedData.exchangeSource);
             } catch (error) {
@@ -479,49 +509,107 @@
             }
         }
 
-        // Gemini AI
-        async function callGeminiApi(prompt) {
-             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
-             try {
-                const response = await fetch(apiUrl, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-                const result = await response.json();
-                return result.candidates?.[0]?.content?.parts?.[0]?.text || "AI 응답 오류";
-             } catch(e) { return "AI 요청 실패"; }
-        }
+        function renderChart(reports, fiscalEndMonth) {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            const chartData = [...reports].reverse();
+            const labels = chartData.map(r => {
+                const year = r.fiscalDateEnding.substring(0, 4);
+                if (currentTimeframe === 'quarterly') {
+                    return `${year} ${getQuarter(r.fiscalDateEnding, fiscalEndMonth)}`;
+                }
+                return year;
+            });
+            const revenue = chartData.map(r => parseFloat(r.totalRevenue));
+            const opIncome = chartData.map(r => parseFloat(r.operatingIncome));
+            const factor = (currentCurrency === 'krw' && usdToKrwRate) ? usdToKrwRate : 1;
+            
+            const datasets = [
+                {
+                    label: '매출',
+                    data: revenue.map(v => v * factor),
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
+                },
+                {
+                    label: '영업이익',
+                    data: opIncome.map(v => v * factor),
+                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                    borderColor: 'rgb(16, 185, 129)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
+                }
+            ];
 
-        async function generateAiSummary(ticker, keyMetrics, yearHeaders, allData) {
-            aiSummaryArea.classList.remove('hidden');
-            aiLoader.classList.remove('hidden');
-            aiSummaryContent.classList.add('hidden');
-            aiError.classList.add('hidden');
-            aiSummaryButton.disabled = true;
-            try {
-                const currentTf = currentTimeframe === 'annual' ? '연간' : '분기';
-                const currentCur = currentCurrency === 'usd' ? 'USD' : 'KRW';
-                let dataForPrompt = `${ticker}의 ${currentTf} 재무 데이터 (${currentCur} 기준):\n\n`;
-                const yearsToShow = [...yearHeaders.slice(0, 5), ...yearHeaders.slice(-2)];
-                const uniqueDates = Array.from(new Set(yearsToShow));
-                for (const metric of keyMetrics) {
-                    dataForPrompt += `${metric.label}:\n`;
-                    for (const dateHeader of uniqueDates) {
-                        const rawValue = metric.getValue(dateHeader, allData);
-                        const numValue = (rawValue === 'None' || rawValue === 'N/A' || rawValue === undefined) ? 'N/A' : parseFloat(rawValue);
-                        if (numValue !== 'N/A') {
-                            dataForPrompt += `  - ${dateHeader}: ${formatNumber(numValue, metric.format)}\n`;
+            if (myChart) myChart.destroy();
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { family: "'Inter', sans-serif", size: 12 } } },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#1f2937',
+                            bodyColor: '#4b5563',
+                            borderColor: '#e5e7eb',
+                            borderWidth: 1,
+                            padding: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed.y !== null) {
+                                        const val = context.parsed.y;
+                                        let formattedVal;
+                                        if (currentCurrency === 'krw') {
+                                             if (Math.abs(val) >= 1000000000000) formattedVal = (val / 1000000000000).toFixed(2) + '조';
+                                             else if (Math.abs(val) >= 100000000) formattedVal = (val / 100000000).toFixed(2) + '억';
+                                             else formattedVal = val.toLocaleString() + '원';
+                                        } else {
+                                             if (Math.abs(val) >= 1000000000) formattedVal = (val / 1000000000).toFixed(2) + 'B';
+                                             else if (Math.abs(val) >= 1000000) formattedVal = (val / 1000000).toFixed(2) + 'M';
+                                             else formattedVal = val.toLocaleString();
+                                        }
+                                        label += formattedVal;
+                                    }
+                                    return label;
+                                }
+                            }
                         }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f3f4f6' },
+                            ticks: {
+                                font: { size: 11 },
+                                callback: function(value) {
+                                    if (currentCurrency === 'krw') {
+                                        if (Math.abs(value) >= 1000000000000) return (value / 1000000000000).toFixed(0) + '조';
+                                        if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(0) + '억';
+                                    } else {
+                                        if (Math.abs(value) >= 1000000000) return (value / 1000000000).toFixed(0) + 'B';
+                                        if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(0) + 'M';
+                                    }
+                                    return value;
+                                }
+                            }
+                        },
+                        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
                     }
                 }
-                const prompt = `당신은 전문 재무 분석가입니다. 제공된 재무 데이터를 바탕으로 이 기업의 장기적인 성과에 대해 한국어로 3-5문장의 간결하고 중립적인 요약을 작성해 주세요.\n\n제공된 데이터:\n${dataForPrompt}\n\n요약:`;
-                const summaryText = await callGeminiApi(prompt);
-                aiSummaryText.textContent = summaryText;
-                aiSummaryContent.classList.remove('hidden');
-            } catch (error) {
-                aiError.textContent = `AI 요약 생성 실패: ${error.message}`;
-                aiError.classList.remove('hidden');
-            } finally {
-                aiLoader.classList.add('hidden');
-                aiSummaryButton.disabled = false;
-            }
+            });
+            chartContainer.classList.remove('hidden');
         }
 
         function displayResults(ticker, allData) {
@@ -543,7 +631,16 @@
             currentPrice.className = `text-2xl md:text-3xl font-bold tracking-tight ${changePercent >= 0 ? 'text-red-600' : changePercent < 0 ? 'text-blue-600' : 'text-gray-800'}`;
             
             let mktCap = parseFloat(overview?.MarketCapitalization);
-            if (price && shares) mktCap = price * shares;
+            if (price && shares) {
+                const calculatedMktCap = price * shares;
+                const apiMktCap = parseFloat(overview?.MarketCapitalization);
+                const diffRatio = Math.abs(calculatedMktCap - apiMktCap) / apiMktCap;
+                if (diffRatio < 0.2) mktCap = calculatedMktCap;
+            } else if (price && shares) {
+                mktCap = price * shares;
+            }
+            const apiMktCap = parseFloat(overview?.MarketCapitalization);
+
             currentPrice.textContent = formatPrice(price);
             marketCap.textContent = formatNumber(mktCap);
 
@@ -553,21 +650,21 @@
                 return;
             }
 
-            const yearHeaders = reports.map(d => d.fiscalDateEnding);
+            const yearsToShow = parseInt(yearSlider.value);
+            const countToShow = currentTimeframe === 'annual' ? yearsToShow : yearsToShow * 4;
+            const filteredReports = reports.slice(0, countToShow);
             
-            let html = `
-                <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-                <table class="w-full min-w-max text-left border-collapse">
-                    <thead class="bg-gray-100"><tr>
-                        <th class="p-3 border-b border-gray-300 font-semibold text-gray-700 sticky left-0 z-10 bg-gray-100 whitespace-nowrap">지표</th>`;
+            const yearHeaders = filteredReports.map(d => d.fiscalDateEnding);
             
-            yearHeaders.forEach(date => {
-                 html += `<th class="p-3 border-b border-gray-300 font-semibold text-gray-700 text-center whitespace-nowrap">
-                    <span class="block">${date.substring(0, 4)}</span>
-                    <span class="block text-xs font-normal text-gray-500">${formatDate(date)}</span>
-                </th>`;
-            });
-            html += `</tr></thead><tbody>`;
+            let fiscalEndMonth = 12; 
+            if (income.annualReports && income.annualReports.length > 0) {
+                const latestDate = income.annualReports[0].fiscalDateEnding;
+                fiscalEndMonth = parseInt(latestDate.substring(5, 7));
+            }
+            
+            try {
+                renderChart(filteredReports, fiscalEndMonth);
+            } catch(e) { console.warn(e); }
 
             const keyMetrics = [
                 { 
@@ -614,65 +711,133 @@
                 }
             ];
 
-            keyMetrics.forEach(metric => {
-                html += `<tr class="even:bg-gray-50 hover:bg-gray-100 transition-colors">
-                    <td class="p-3 border-b border-gray-200 font-medium text-gray-800 sticky left-0 z-10 bg-white even:bg-gray-50 hover:bg-gray-100 whitespace-nowrap shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">${metric.label}</td>`;
-                
-                yearHeaders.forEach((date, colIndex) => {
-                    let val = metric.getValue(date, allData);
+            let html = `<div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                        <table class="w-full min-w-max text-left border-collapse border-hidden">`;
+
+            if (!isVerticalView) {
+                html += `<thead class="bg-gray-100"><tr>
+                            <th class="p-2 border border-gray-300 font-semibold text-gray-700 sticky left-0 z-10 bg-gray-100 whitespace-nowrap text-center text-sm">지표</th>`;
+                yearHeaders.forEach(date => {
+                     let dateLabel = date.substring(0, 4);
+                     if (currentTimeframe === 'quarterly') {
+                         dateLabel += ` <span class="text-gray-500 font-normal ml-0.5">${getQuarter(date, fiscalEndMonth)}</span>`;
+                     }
+                     html += `<th class="p-2 border border-gray-300 font-semibold text-gray-700 text-center whitespace-nowrap text-sm">
+                        <span class="block">${dateLabel}</span>
+                        <span class="block text-xs font-normal text-gray-500">${formatFullDate(date)}</span>
+                    </th>`;
+                });
+                html += `</tr></thead><tbody>`;
+
+                keyMetrics.forEach(metric => {
+                    html += `<tr class="even:bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <td class="p-2 border border-gray-300 font-medium text-gray-800 sticky left-0 z-10 bg-white even:bg-gray-50 hover:bg-gray-100 whitespace-nowrap text-center text-sm shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">${metric.label}</td>`;
                     
-                    // YoY Calculation Logic
-                    let growthHtml = '';
-                    // Skip YoY for 'Market Cap / Op Income' (last metric)
-                    if (metric.label !== '시가총액 / 영업이익') {
-                        const prevIndex = colIndex + (currentTimeframe === 'annual' ? 1 : 4);
-                        if (prevIndex < yearHeaders.length) {
-                            const prevDate = yearHeaders[prevIndex];
-                            const prevVal = metric.getValue(prevDate, allData);
+                    yearHeaders.forEach((date, colIndex) => {
+                        let val = metric.getValue(date, allData);
+                        let growthHtml = '';
+                        if (metric.label !== '시가총액 / 영업이익') {
+                            const currentIndexInAll = reports.findIndex(r => r.fiscalDateEnding === date);
+                            const prevIndex = currentIndexInAll + (currentTimeframe === 'annual' ? 1 : 4);
                             
-                            if (val !== null && prevVal !== null && !isNaN(val) && !isNaN(prevVal) && prevVal != 0) {
-                                let change, changeStr, colorClass;
-                                
-                                if (metric.format === 'percent') {
-                                    // Margin: Point difference (%p)
-                                    change = (val - prevVal) * 100; 
-                                    colorClass = change > 0 ? 'text-red-500' : change < 0 ? 'text-blue-500' : 'text-gray-400';
-                                    changeStr = `${change > 0 ? '▲' : change < 0 ? '▼' : ''} ${Math.abs(change).toFixed(1)}%p`;
-                                } else {
-                                    // Revenue/Income: Growth rate (%)
-                                    change = ((val - prevVal) / Math.abs(prevVal)) * 100;
-                                    colorClass = change > 0 ? 'text-red-500' : change < 0 ? 'text-blue-500' : 'text-gray-400';
-                                    changeStr = `${change > 0 ? '▲' : change < 0 ? '▼' : ''} ${Math.abs(change).toFixed(1)}%`;
+                            if (prevIndex < reports.length) {
+                                const prevDate = reports[prevIndex].fiscalDateEnding;
+                                const prevVal = metric.getValue(prevDate, allData);
+                                if (val !== null && prevVal !== null && !isNaN(val) && !isNaN(prevVal) && prevVal != 0) {
+                                    let change, changeStr, colorClass;
+                                    if (metric.format === 'percent') {
+                                        change = (val - prevVal) * 100; 
+                                        colorClass = change > 0 ? 'text-red-500' : change < 0 ? 'text-blue-500' : 'text-gray-400';
+                                        changeStr = `${change > 0 ? '▲' : change < 0 ? '▼' : ''} ${Math.abs(change).toFixed(1)}%p`;
+                                    } else {
+                                        change = ((val - prevVal) / Math.abs(prevVal)) * 100;
+                                        colorClass = change > 0 ? 'text-red-500' : change < 0 ? 'text-blue-500' : 'text-gray-400';
+                                        changeStr = `${change > 0 ? '▲' : change < 0 ? '▼' : ''} ${Math.abs(change).toFixed(1)}%`;
+                                    }
+                                    growthHtml = `<span class="text-xs ${colorClass} ml-2 font-semibold">(${changeStr})</span>`;
                                 }
-                                
-                                growthHtml = `<span class="block text-xs ${colorClass} mt-1 font-semibold">${changeStr}</span>`;
                             }
                         }
-                    }
 
-                    html += `<td class="p-3 border-b border-gray-200 text-right font-mono whitespace-nowrap align-top">
-                        <div>${formatNumber(val, metric.format)}</div>
-                        ${growthHtml}
-                    </td>`;
+                        html += `<td class="p-1 border border-gray-300 text-left font-mono whitespace-nowrap text-sm">
+                            <div class="flex items-center justify-start">
+                                <span class="w-[11ch] text-right font-bold text-gray-900">${formatNumber(val, metric.format)}</span>
+                                <span class="ml-1.5">${growthHtml}</span>
+                            </div>
+                        </td>`;
+                    });
+                    html += `</tr>`;
                 });
-                html += `</tr>`;
-            });
+                html += `</tbody>`;
 
-            html += `</tbody></table></div>`;
+            } else {
+                html += `<thead class="bg-gray-100"><tr>
+                            <th class="p-1 border border-gray-300 font-semibold text-gray-700 sticky left-0 z-10 bg-gray-100 whitespace-nowrap text-center text-sm">기간</th>`;
+                keyMetrics.forEach(metric => {
+                    html += `<th class="p-1 border border-gray-300 font-semibold text-gray-700 text-center whitespace-nowrap text-sm">${metric.label}</th>`;
+                });
+                html += `</tr></thead><tbody>`;
+
+                yearHeaders.forEach((date, rowIndex) => {
+                    let dateLabel = date.substring(0, 4);
+                    if (currentTimeframe === 'quarterly') {
+                        dateLabel += ` <span class="font-normal text-gray-600 ml-0.5">${getQuarter(date, fiscalEndMonth)}</span>`;
+                    }
+                    
+                    html += `<tr class="even:bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <td class="p-1 border border-gray-300 font-medium text-gray-800 sticky left-0 z-10 bg-white even:bg-gray-50 hover:bg-gray-100 whitespace-nowrap shadow-[1px_0_0_0_rgba(0,0,0,0.05)] text-center text-sm">
+                             <span class="font-bold">${dateLabel}</span>
+                             <span class="text-xs text-gray-500 ml-1">(${formatFullDate(date)})</span>
+                        </td>`;
+                    
+                    keyMetrics.forEach(metric => {
+                        let val = metric.getValue(date, allData);
+                        
+                        let growthHtml = '';
+                        if (metric.label !== '시가총액 / 영업이익') {
+                            const currentIndexInAll = reports.findIndex(r => r.fiscalDateEnding === date);
+                            const prevIndex = currentIndexInAll + (currentTimeframe === 'annual' ? 1 : 4);
+                            
+                            if (prevIndex < reports.length) {
+                                const prevDate = reports[prevIndex].fiscalDateEnding;
+                                const prevVal = metric.getValue(prevDate, allData);
+                                
+                                if (val !== null && prevVal !== null && !isNaN(val) && !isNaN(prevVal) && prevVal != 0) {
+                                    let change, changeStr, colorClass;
+                                    if (metric.format === 'percent') {
+                                        change = (val - prevVal) * 100; 
+                                        colorClass = change > 0 ? 'text-red-500' : change < 0 ? 'text-blue-500' : 'text-gray-400';
+                                        changeStr = `${change > 0 ? '▲' : change < 0 ? '▼' : ''} ${Math.abs(change).toFixed(1)}%p`;
+                                    } else {
+                                        change = ((val - prevVal) / Math.abs(prevVal)) * 100;
+                                        colorClass = change > 0 ? 'text-red-500' : change < 0 ? 'text-blue-500' : 'text-gray-400';
+                                        changeStr = `${change > 0 ? '▲' : change < 0 ? '▼' : ''} ${Math.abs(change).toFixed(1)}%`;
+                                    }
+                                    growthHtml = `<span class="text-xs ${colorClass} ml-2 font-semibold">(${changeStr})</span>`;
+                                }
+                            }
+                        }
+
+                        html += `<td class="p-1 border border-gray-300 text-left font-mono whitespace-nowrap text-sm">
+                            <div class="flex items-center justify-start">
+                                <span class="w-[11ch] text-right font-bold text-gray-900">${formatNumber(val, metric.format)}</span>
+                                <span class="ml-1.5">${growthHtml}</span>
+                            </div>
+                        </td>`;
+                    });
+                    html += `</tr>`;
+                });
+                html += `</tbody>`;
+            }
+
+            html += `</table></div>`;
             resultsList.innerHTML = html;
-
-            aiSummaryButton.classList.remove('hidden');
-            aiSummaryButton.onclick = () => generateAiSummary(ticker, keyMetrics, yearHeaders, allData);
         }
 
         function resetUI() {
             resultsList.innerHTML = '';
             exchangeRateInfo.classList.add('hidden');
             resultsHeaderContainer.classList.add('hidden');
-            aiSummaryArea.classList.add('hidden');
-            aiSummaryContent.classList.add('hidden');
-            aiError.classList.add('hidden');
-            aiSummaryButton.classList.add('hidden');
             optionsArea.classList.add('hidden'); 
             summaryCard.classList.add('hidden');
         }
