@@ -250,12 +250,35 @@
             await fetchTickerData();
         });
 
+        // 수정된 기업 목록 Fetch 함수 (다중 프록시 시도)
         async function fetchTickerData() {
-            try {
-                const response = await fetch('https://corsproxy.io/?https://www.sec.gov/files/company_tickers.json');
-                const data = await response.json();
-                tickerList = Object.values(data);
-            } catch (e) { console.warn("Ticker load failed", e); }
+            const targetUrl = 'https://www.sec.gov/files/company_tickers.json';
+            
+            // 시도할 프록시 목록 (순서대로 시도)
+            const proxies = [
+                // 1순위: corsproxy.io (URL 인코딩 적용)
+                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                // 2순위: allorigins.win (백업)
+                (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+            ];
+
+            for (const proxyGen of proxies) {
+                try {
+                    const proxyUrl = proxyGen(targetUrl);
+                    const response = await fetch(proxyUrl);
+                    
+                    if (!response.ok) throw new Error(`Status ${response.status}`);
+                    
+                    const data = await response.json();
+                    tickerList = Object.values(data);
+                    console.log(`Loaded ${tickerList.length} companies from ${proxyUrl}`);
+                    return; // 성공 시 함수 종료
+                } catch (e) {
+                    console.warn(`Ticker load failed via proxy:`, e);
+                    // 실패 시 다음 프록시 시도
+                }
+            }
+            console.error("All ticker load attempts failed.");
         }
 
         tickerInput.addEventListener('input', function() {
