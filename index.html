@@ -167,8 +167,8 @@
                     </button>
                 </div>
                 
-                <!-- 예상 실적 계산기 (추가됨) -->
-                <div id="calculatorContainer" class="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg border border-purple-100 shadow-sm w-full md:w-auto justify-center">
+                <!-- 예상 실적 계산기 -->
+                <div id="calculatorContainer" class="hidden flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg border border-purple-100 shadow-sm w-full md:w-auto justify-center">
                     <label for="calcInput" class="text-xs text-purple-800 font-semibold whitespace-nowrap">예상 영업이익:</label>
                     <div class="relative">
                         <input type="number" id="calcInput" placeholder="0" class="w-20 bg-white border border-purple-200 rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
@@ -242,8 +242,8 @@
         let tickerList = []; 
         let isVerticalView = true; 
         let myChart = null;
-        let currentMarketCapRaw = 0; // 실시간 시가총액(Raw Value) 저장용
-        let calculatorBaseUnit = 1; // 계산기 입력값의 단위 (예: 10억)
+        let currentMarketCapUSD = 0; // 시가총액 (USD)
+        let calcFactor = 1;
 
         // --- 4. 초기화 및 이벤트 리스너 ---
         window.addEventListener('DOMContentLoaded', async () => {
@@ -346,76 +346,57 @@
             sliderLabel.textContent = `최근 ${years}년`;
             if (fetchedData) displayResults(fetchedData.ticker, fetchedData);
         });
-        
+
         // --- 계산기 로직 ---
         calcInput.addEventListener('input', updateCalculator);
         
         function updateCalculator() {
             const val = parseFloat(calcInput.value);
-            if (!val || val === 0 || !currentMarketCapRaw) {
+            if (!val || val === 0 || !currentMarketCapUSD) {
                 calcResult.textContent = '-';
                 return;
             }
-            
-            // 입력값(val) * 단위(calculatorBaseUnit) = 예상 영업이익
-            // Market Cap / 예상 영업이익 = Multiple
-            const expectedOpIncome = val * calculatorBaseUnit;
-            const multiple = currentMarketCapRaw / expectedOpIncome;
-            
+            // 입력값 * 단위변환계수 = USD 기준 예상 영업이익
+            const expectedOpIncomeUSD = val * calcFactor;
+            const multiple = currentMarketCapUSD / expectedOpIncomeUSD;
             calcResult.textContent = multiple.toFixed(2) + 'x';
         }
 
-        function setupCalculator(latestOpIncome) {
-            // latestOpIncome은 이미 환율이 적용된 상태의 값이라고 가정하거나,
-            // 여기서 통화에 맞춰 단위를 설정해야 함.
-            // fetchedData 저장 시 raw data가 저장됨.
-            // 따라서 화면에 표시되는 통화(currentCurrency)에 맞춰 단위를 결정.
+        function setupCalculator(latestOpIncomeUSD) {
+            // 통화에 따른 환율 적용
+            let rate = 1;
+            if (currentCurrency === 'krw' && usdToKrwRate) rate = usdToKrwRate;
             
-            let factor = 1;
-            if (currentCurrency === 'krw' && usdToKrwRate) factor = usdToKrwRate;
+            const incomeInCurr = latestOpIncomeUSD * rate;
+            let displayUnit = 1;
             
-            const incomeInCurrentCurrency = latestOpIncome * factor;
-            const mktCapInCurrentCurrency = currentMarketCapRaw; // 이미 update 함수에서 처리? No.
-            // currentMarketCapRaw는 USD 기준 원본이어야 함.
-            // 하지만 사용자 입력은 "현재 보이는 통화" 기준임.
-            // 따라서 비교 대상인 시가총액도 현재 통화로 변환 필요.
-            
-            const mktCapForCalc = currentMarketCapRaw * factor;
-            
-            // 단위 결정 로직 (최근 영업이익 규모 기준)
+            // 단위 결정 및 UI 설정
             if (currentCurrency === 'krw') {
-                if (Math.abs(incomeInCurrentCurrency) >= 1_000_000_000_000) {
-                    calculatorBaseUnit = 1_000_000_000_000 / factor; // 입력값 1 = 1조 (USD로 환산해 저장) -> 아니요, 계산은 다 환산된 뒤에 하는게 나음.
-                    // 간단히: 입력값(화면단위) -> 실제값(화면단위) -> 비율 계산
-                    // 따라서 baseUnit은 화면 표시 단위에 맞춤.
-                    calculatorBaseUnit = 1_000_000_000_000; 
+                if (Math.abs(incomeInCurr) >= 1_000_000_000_000) {
+                    displayUnit = 1_000_000_000_000;
                     calcUnitDisplay.textContent = '조원';
-                    calcInput.placeholder = (incomeInCurrentCurrency / 1_000_000_000_000).toFixed(1);
                 } else {
-                    calculatorBaseUnit = 100_000_000;
+                    displayUnit = 100_000_000;
                     calcUnitDisplay.textContent = '억원';
-                    calcInput.placeholder = (incomeInCurrentCurrency / 100_000_000).toFixed(0);
                 }
             } else {
-                // USD
-                if (Math.abs(incomeInCurrentCurrency) >= 1_000_000_000) {
-                    calculatorBaseUnit = 1_000_000_000;
+                if (Math.abs(incomeInCurr) >= 1_000_000_000) {
+                    displayUnit = 1_000_000_000;
                     calcUnitDisplay.textContent = '$B';
-                    calcInput.placeholder = (incomeInCurrentCurrency / 1_000_000_000).toFixed(1);
                 } else {
-                    calculatorBaseUnit = 1_000_000;
+                    displayUnit = 1_000_000;
                     calcUnitDisplay.textContent = '$M';
-                    calcInput.placeholder = (incomeInCurrentCurrency / 1_000_000).toFixed(0);
                 }
             }
             
-            // 재계산을 위해 전역 변수에 현재 통화 기준 시가총액 저장 (임시로 덮어쓰기 X, 별도 변수 쓰거나 여기서 계산)
-            // updateCalculator에서 쓸 전역 변수를 "현재 통화 기준 시가총액"으로 업데이트
-            currentMarketCapRaw = mktCapForCalc; 
-            calcInput.value = ''; // 초기화
+            // calcFactor: 입력값 1이 의미하는 USD 금액
+            // 예: 1조원 입력 -> 1조 / 환율 = USD 금액
+            calcFactor = displayUnit / rate;
+            
+            calcInput.placeholder = (incomeInCurr / displayUnit).toFixed(1);
+            calcInput.value = '';
             calcResult.textContent = '-';
         }
-
 
         // --- 5. 헬퍼 함수 ---
         function formatNumber(num, format = 'default') {
@@ -606,18 +587,122 @@
             }
         }
 
+        function renderChart(reports, fiscalEndMonth) {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            const chartData = [...reports].reverse();
+            const labels = chartData.map(r => {
+                const year = r.fiscalDateEnding.substring(0, 4);
+                if (currentTimeframe === 'quarterly') {
+                    return `${year} ${getQuarter(r.fiscalDateEnding, fiscalEndMonth)}`;
+                }
+                return year;
+            });
+            const revenue = chartData.map(r => parseFloat(r.totalRevenue));
+            const opIncome = chartData.map(r => parseFloat(r.operatingIncome));
+            const factor = (currentCurrency === 'krw' && usdToKrwRate) ? usdToKrwRate : 1;
+            
+            const datasets = [
+                {
+                    label: '매출',
+                    data: revenue.map(v => v * factor),
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
+                },
+                {
+                    label: '영업이익',
+                    data: opIncome.map(v => v * factor),
+                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                    borderColor: 'rgb(16, 185, 129)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
+                }
+            ];
+
+            if (myChart) myChart.destroy();
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { family: "'Inter', sans-serif", size: 12 } } },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#1f2937',
+                            bodyColor: '#4b5563',
+                            borderColor: '#e5e7eb',
+                            borderWidth: 1,
+                            padding: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed.y !== null) {
+                                        const val = context.parsed.y;
+                                        let formattedVal;
+                                        if (currentCurrency === 'krw') {
+                                             if (Math.abs(val) >= 1000000000000) formattedVal = (val / 1000000000000).toFixed(2) + '조';
+                                             else if (Math.abs(val) >= 100000000) formattedVal = (val / 100000000).toFixed(2) + '억';
+                                             else formattedVal = val.toLocaleString() + '원';
+                                        } else {
+                                             if (Math.abs(val) >= 1000000000) formattedVal = (val / 1000000000).toFixed(2) + 'B';
+                                             else if (Math.abs(val) >= 1000000) formattedVal = (val / 1000000).toFixed(2) + 'M';
+                                             else formattedVal = val.toLocaleString();
+                                        }
+                                        label += formattedVal;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f3f4f6' },
+                            ticks: {
+                                font: { size: 11 },
+                                callback: function(value) {
+                                    if (currentCurrency === 'krw') {
+                                        if (Math.abs(value) >= 1000000000000) return (value / 1000000000000).toFixed(0) + '조';
+                                        if (Math.abs(value) >= 100000000) return (value / 100000000).toFixed(0) + '억';
+                                    } else {
+                                        if (Math.abs(value) >= 1000000000) return (value / 1000000000).toFixed(0) + 'B';
+                                        if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(0) + 'M';
+                                    }
+                                    return value;
+                                }
+                            }
+                        },
+                        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                    }
+                }
+            });
+            chartContainer.classList.remove('hidden');
+        }
+
         function displayResults(ticker, allData) {
             const { income, balance, earnings, overview, quote } = allData;
             
             resultsHeaderContainer.classList.remove('hidden');
             resultsHeaderContainer.classList.add('flex');
             summaryCard.classList.remove('hidden');
-            calculatorContainer.classList.remove('hidden'); // 계산기 표시
+            calculatorContainer.classList.remove('hidden');
             
             companyName.textContent = overview?.Name || ticker;
             companyTicker.textContent = ticker;
             
             const price = parseFloat(quote['05. price']);
+            const prevClose = parseFloat(quote['08. previous close']);
             const shares = parseFloat(overview?.SharesOutstanding);
             const changePercent = parseFloat((quote['10. change percent'] || '0').replace('%', ''));
             
@@ -625,19 +710,15 @@
             priceChange.className = `text-xs md:text-sm font-bold px-2 py-0.5 rounded whitespace-nowrap ${changePercent >= 0 ? 'text-red-600 bg-red-50' : changePercent < 0 ? 'text-blue-600 bg-blue-50' : 'text-gray-600 bg-gray-50'}`;
             currentPrice.className = `text-2xl md:text-3xl font-bold tracking-tight ${changePercent >= 0 ? 'text-red-600' : changePercent < 0 ? 'text-blue-600' : 'text-gray-800'}`;
             
-            let mktCap = parseFloat(overview?.MarketCapitalization);
-            if (price && shares) {
-                const calculatedMktCap = price * shares;
-                const apiMktCap = parseFloat(overview?.MarketCapitalization);
-                const diffRatio = Math.abs(calculatedMktCap - apiMktCap) / apiMktCap;
-                if (diffRatio < 0.2) mktCap = calculatedMktCap;
+            let apiMktCap = parseFloat(overview?.MarketCapitalization);
+            let mktCap = apiMktCap;
+            if (apiMktCap && price && prevClose && prevClose !== 0) {
+                const priceRatio = price / prevClose;
+                mktCap = apiMktCap * priceRatio;
             } else if (price && shares) {
                 mktCap = price * shares;
             }
-            const apiMktCap = parseFloat(overview?.MarketCapitalization);
-            
-            // 전역 시가총액 변수 업데이트 (USD 기준)
-            currentMarketCapRaw = mktCap;
+            currentMarketCapUSD = mktCap;
 
             currentPrice.textContent = formatPrice(price);
             marketCap.textContent = formatNumber(mktCap);
@@ -648,11 +729,8 @@
                 return;
             }
 
-            // 계산기 설정 (최신 영업이익 기준)
             if (reports.length > 0) {
                 const latestOp = parseFloat(reports[0].operatingIncome);
-                // 분기일 경우 연환산(x4)하여 계산기 기준 설정? 보통 연간 기준이므로 연간 보고서나 분기*4 사용
-                // 여기서는 현재 보고서 기준
                 let baseOp = latestOp;
                 if (currentTimeframe === 'quarterly') baseOp = latestOp * 4;
                 setupCalculator(baseOp);
@@ -763,15 +841,24 @@
                                         colorClass = change > 0 ? 'text-red-500' : change < 0 ? 'text-blue-500' : 'text-gray-400';
                                         changeStr = `${change > 0 ? '▲' : change < 0 ? '▼' : ''} ${Math.abs(change).toFixed(1)}%`;
                                     }
-                                    growthHtml = `<span class="block text-xs ${colorClass} mt-0.5 font-semibold">${changeStr}</span>`;
+                                    growthHtml = `<span class="text-xs ${colorClass} ml-2 font-semibold">(${changeStr})</span>`;
                                 }
                             }
                         }
 
-                        // 가로 보기: 실적(위) / 증감률(아래)
-                        html += `<td class="p-2 border border-gray-300 text-right font-mono whitespace-nowrap align-top text-sm">
-                            <div class="font-bold text-gray-900 mb-1">${formatNumber(val, metric.format)}</div>
-                            ${growthHtml}
+                        let cellContent;
+                        if (metric.label === '시가총액 / 영업이익') {
+                             cellContent = `<div class="flex justify-center items-center h-full"><span class="font-bold text-gray-900">${formatNumber(val, metric.format)}</span></div>`;
+                        } else {
+                             // 수정됨: 숫자 우측정렬(11글자) + 공백 + 등락률
+                             cellContent = `<div class="flex items-center justify-start h-full">
+                                <span class="w-[11ch] text-right font-bold text-gray-900 shrink-0">${formatNumber(val, metric.format)}</span>
+                                <span class="ml-1.5">${growthHtml}</span>
+                            </div>`;
+                        }
+
+                        html += `<td class="p-2 border border-gray-300 text-sm font-mono whitespace-nowrap">
+                            ${cellContent}
                         </td>`;
                     });
                     html += `</tr>`;
@@ -788,15 +875,16 @@
                 html += `</tr></thead><tbody>`;
 
                 yearHeaders.forEach((date, rowIndex) => {
-                    let dateLabel = date.substring(0, 4);
+                    let dateStr = date.substring(0, 4);
+                    let dateLabel = `<span class="font-bold text-gray-900">${dateStr}</span><span class="text-gray-500 text-xs ml-0.5">-${date.substring(5)}</span>`;
                     if (currentTimeframe === 'quarterly') {
-                        dateLabel += ` <span class="font-normal text-gray-600 ml-0.5">${getQuarter(date, fiscalEndMonth)}</span>`;
+                        const q = getQuarter(date, fiscalEndMonth);
+                        dateLabel = `<span class="font-bold text-gray-900">${dateStr}</span><span class="text-gray-500 text-xs">-${date.substring(5)}</span> <span class="font-bold text-blue-600 ml-0.5">${q}</span>`;
                     }
                     
                     html += `<tr class="even:bg-gray-50 hover:bg-gray-100 transition-colors">
                         <td class="p-1 border border-gray-300 font-medium text-gray-800 sticky left-0 z-10 bg-white even:bg-gray-50 hover:bg-gray-100 whitespace-nowrap shadow-[1px_0_0_0_rgba(0,0,0,0.05)] text-center text-sm">
-                             <span class="font-bold">${dateLabel}</span>
-                             <span class="text-xs text-gray-500 ml-1">(${formatFullDate(date)})</span>
+                             <div class="flex items-center justify-center gap-0.5">${dateLabel}</div>
                         </td>`;
                     
                     keyMetrics.forEach(metric => {
@@ -822,7 +910,7 @@
                                         colorClass = change > 0 ? 'text-red-500' : change < 0 ? 'text-blue-500' : 'text-gray-400';
                                         changeStr = `${change > 0 ? '▲' : change < 0 ? '▼' : ''} ${Math.abs(change).toFixed(1)}%`;
                                     }
-                                    growthHtml = `<span class="inline-block ml-1.5 text-xs ${colorClass} font-semibold">(${changeStr})</span>`;
+                                    growthHtml = `<span class="text-xs ${colorClass} ml-2 font-semibold">(${changeStr})</span>`;
                                 }
                             }
                         }
@@ -831,9 +919,10 @@
                         if (metric.label === '시가총액 / 영업이익') {
                              cellContent = `<div class="flex justify-center items-center h-full"><span class="font-bold text-gray-900">${formatNumber(val, metric.format)}</span></div>`;
                         } else {
+                             // 수정됨: 세로 보기에도 동일하게 적용 (숫자 우측정렬 11칸 + 공백 + 등락률)
                              cellContent = `<div class="flex items-center justify-start h-full">
                                 <span class="w-[11ch] text-right font-bold text-gray-900 shrink-0">${formatNumber(val, metric.format)}</span>
-                                ${growthHtml}
+                                <span class="ml-1.5">${growthHtml}</span>
                             </div>`;
                         }
 
@@ -850,6 +939,7 @@
             resultsList.innerHTML = html;
         }
 
+        // --- UI 유틸리티 ---
         function resetUI() {
             resultsList.innerHTML = '';
             exchangeRateInfo.classList.add('hidden');
