@@ -98,22 +98,40 @@
             <div id="errorMessage" class="hidden text-center text-red-600 p-4 md:p-6 bg-red-50 rounded-lg border border-red-100 shadow-sm break-keep"></div>
 
             <!-- 요약 정보 카드 -->
-            <div id="summaryCard" class="hidden bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-5 mb-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 md:gap-8">
-                <div class="text-center md:text-left">
-                    <h2 id="companyName" class="text-xl md:text-2xl font-bold text-gray-800 leading-tight"></h2>
-                    <p id="companyTicker" class="text-sm text-gray-500 font-semibold mt-1"></p>
-                </div>
-                <div class="flex flex-row gap-6 md:gap-12 w-full md:w-auto justify-center md:justify-end text-center md:text-right border-t md:border-t-0 border-gray-200 pt-4 md:pt-0 mt-2 md:mt-0">
-                    <div>
-                        <p class="text-xs md:text-sm text-gray-500 mb-1">현재 주가</p>
-                        <div class="flex flex-col md:flex-row items-center md:items-baseline justify-center md:justify-end gap-1 md:gap-2">
-                            <p id="currentPrice" class="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">-</p>
-                            <span id="priceChange" class="text-xs md:text-sm font-bold px-2 py-0.5 rounded bg-gray-100 whitespace-nowrap">-</span>
+            <div id="summaryCard" class="hidden bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-5 mb-6 shadow-sm flex flex-col gap-5">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="text-center md:text-left w-full md:w-auto">
+                        <h2 id="companyName" class="text-xl md:text-2xl font-bold text-gray-800 leading-tight"></h2>
+                        <p id="companyTicker" class="text-sm text-gray-500 font-semibold mt-1"></p>
+                    </div>
+                    <div class="flex flex-row gap-6 md:gap-12 w-full md:w-auto justify-center md:justify-end text-center md:text-right">
+                        <div>
+                            <p class="text-xs md:text-sm text-gray-500 mb-1">현재 주가</p>
+                            <div class="flex flex-col md:flex-row items-center md:items-baseline justify-end gap-1 md:gap-2">
+                                <p id="currentPrice" class="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">-</p>
+                                <span id="priceChange" class="text-xs md:text-sm font-bold px-2 py-0.5 rounded bg-gray-100 whitespace-nowrap">-</span>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-xs md:text-sm text-gray-500 mb-1">시가총액 (Real-time)</p>
+                            <p id="marketCap" class="text-xl md:text-2xl font-bold text-gray-800 tracking-tight">-</p>
                         </div>
                     </div>
-                    <div>
-                        <p class="text-xs md:text-sm text-gray-500 mb-1">시가총액 (Real-time)</p>
-                        <p id="marketCap" class="text-xl md:text-2xl font-bold text-gray-800 tracking-tight">-</p>
+                </div>
+
+                <!-- 자산총액 / 부채총계 / 이익잉여금 추가 -->
+                <div class="grid grid-cols-3 divide-x divide-gray-200 border-t border-gray-200 pt-4 mt-2">
+                    <div class="text-center px-1 md:px-2 flex flex-col justify-center">
+                        <p class="text-[10px] md:text-xs text-gray-500 mb-1 font-medium leading-tight">자산총액 <span class="text-[9px] md:text-[10px] whitespace-nowrap">(자기자본)</span></p>
+                        <p id="totalCapital" class="text-xs md:text-sm font-bold text-gray-800 break-words">-</p>
+                    </div>
+                    <div class="text-center px-1 md:px-2 flex flex-col justify-center">
+                        <p class="text-[10px] md:text-xs text-gray-500 mb-1 font-medium leading-tight">부채총계 <span class="text-[9px] md:text-[10px] whitespace-nowrap">(부채비율)</span></p>
+                        <p id="debtRatio" class="text-xs md:text-sm font-bold text-gray-800 break-words">-</p>
+                    </div>
+                    <div class="text-center px-1 md:px-2 flex flex-col justify-center">
+                        <p class="text-[10px] md:text-xs text-gray-500 mb-1 font-medium leading-tight">전체 이익잉여금 <span class="text-[9px] md:text-[10px] whitespace-nowrap">(유보율)</span></p>
+                        <p id="reserveRatio" class="text-xs md:text-sm font-bold text-gray-800 break-words">-</p>
                     </div>
                 </div>
             </div>
@@ -224,6 +242,11 @@
         const marketCap = document.getElementById('marketCap');
         const chartContainer = document.getElementById('chartContainer');
         
+        // 지표 요소 추가
+        const totalCapital = document.getElementById('totalCapital');
+        const debtRatio = document.getElementById('debtRatio');
+        const reserveRatio = document.getElementById('reserveRatio');
+
         // 계산기 요소
         const calculatorContainer = document.getElementById('calculatorContainer');
         const calcInput = document.getElementById('calcInput');
@@ -250,35 +273,23 @@
             await fetchTickerData();
         });
 
-        // 수정된 기업 목록 Fetch 함수 (다중 프록시 시도)
         async function fetchTickerData() {
-            const targetUrl = 'https://www.sec.gov/files/company_tickers.json';
-            
-            // 시도할 프록시 목록 (순서대로 시도)
-            const proxies = [
-                // 1순위: corsproxy.io (URL 인코딩 적용)
-                (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                // 2순위: allorigins.win (백업)
-                (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
-            ];
-
-            for (const proxyGen of proxies) {
+            try {
+                // 1순위: 깃허브에 업로드한 동일 폴더 내의 로컬 파일에서 불러오기
+                const response = await fetch('./company_tickers.json');
+                const data = await response.json();
+                tickerList = Object.values(data);
+            } catch (e) { 
+                console.warn("Local ticker load failed, trying raw github URL", e); 
                 try {
-                    const proxyUrl = proxyGen(targetUrl);
-                    const response = await fetch(proxyUrl);
-                    
-                    if (!response.ok) throw new Error(`Status ${response.status}`);
-                    
-                    const data = await response.json();
-                    tickerList = Object.values(data);
-                    console.log(`Loaded ${tickerList.length} companies from ${proxyUrl}`);
-                    return; // 성공 시 함수 종료
-                } catch (e) {
-                    console.warn(`Ticker load failed via proxy:`, e);
-                    // 실패 시 다음 프록시 시도
+                    // 2순위: 로컬 호출 실패 시, 회원님 깃허브 저장소의 원본(Raw) 파일 주소에서 직접 불러오기
+                    const fallbackResponse = await fetch('https://raw.githubusercontent.com/veronikavoss/earnings/main/company_tickers.json');
+                    const fallbackData = await fallbackResponse.json();
+                    tickerList = Object.values(fallbackData);
+                } catch (err) {
+                    console.error("All GitHub ticker loads failed", err);
                 }
             }
-            console.error("All ticker load attempts failed.");
         }
 
         tickerInput.addEventListener('input', function() {
@@ -301,9 +312,10 @@
         });
 
         function filterCompanies(query) {
-            if (!tickerList.length) return [];
+            if (!tickerList || !tickerList.length) return [];
             const q = query.toUpperCase();
-            return tickerList.filter(c => c.ticker.startsWith(q) || c.title.toUpperCase().includes(q)).slice(0, 10); 
+            // 가장 초기 형태의 단순 필터 (c.ticker가 존재하는지 체크하는 1줄 방어코드만 포함)
+            return tickerList.filter(c => c && c.ticker && c.title && (c.ticker.toUpperCase().startsWith(q) || c.title.toUpperCase().includes(q))).slice(0, 10); 
         }
 
         function showAutocomplete(matches) {
@@ -746,6 +758,62 @@
             currentPrice.textContent = formatPrice(price);
             marketCap.textContent = formatNumber(mktCap);
 
+            // --- 추가된 재무 비율 계산 (자산총액, 부채총계, 이익잉여금 및 비율) ---
+            // 대차대조표는 가장 최근 시점의 상태가 중요하므로, 최신 분기(quarterly) 데이터를 1순위로 사용합니다.
+            const latestBalance = balance.quarterlyReports && balance.quarterlyReports.length > 0 
+                ? balance.quarterlyReports[0] 
+                : (balance.annualReports && balance.annualReports.length > 0 ? balance.annualReports[0] : null);
+
+            let capStr = '-';
+            let debtStr = '-';
+            let reserveStr = '-';
+
+            if (latestBalance) {
+                const commonStk = parseFloat(latestBalance.commonStock);
+                const tLiabilities = parseFloat(latestBalance.totalLiabilities);
+                const tEquity = parseFloat(latestBalance.totalShareholderEquity);
+                const tAssets = parseFloat(latestBalance.totalAssets);
+                const retainedEarnings = parseFloat(latestBalance.retainedEarnings);
+
+                // 1. 자산총액 (자기자본)
+                let assetVal = tAssets;
+                if (isNaN(assetVal) && !isNaN(tEquity) && !isNaN(tLiabilities)) {
+                    assetVal = tEquity + tLiabilities;
+                }
+                
+                if (!isNaN(assetVal)) {
+                    let equityStr = '';
+                    if (!isNaN(tEquity)) {
+                        equityStr = ` (${formatNumber(tEquity)})`;
+                    }
+                    capStr = formatNumber(assetVal) + equityStr;
+                }
+                
+                // 2. 부채총계(부채비율)
+                if (!isNaN(tLiabilities)) {
+                    let ratioStr = '';
+                    if (!isNaN(tEquity) && tEquity !== 0) {
+                        ratioStr = ` (${((tLiabilities / tEquity) * 100).toLocaleString('en-US', {maximumFractionDigits: 2})}%)`;
+                    }
+                    debtStr = formatNumber(tLiabilities) + ratioStr;
+                }
+                
+                // 3. 이익 잉여금(유보율)
+                let reVal = !isNaN(retainedEarnings) ? retainedEarnings : (tEquity - commonStk);
+                if (!isNaN(reVal)) {
+                    let ratioStr = '';
+                    if (!isNaN(tEquity) && !isNaN(commonStk) && commonStk !== 0) {
+                        ratioStr = ` (${(((tEquity - commonStk) / commonStk) * 100).toLocaleString('en-US', {maximumFractionDigits: 2})}%)`;
+                    }
+                    reserveStr = formatNumber(reVal) + ratioStr;
+                }
+            }
+            
+            totalCapital.textContent = capStr;
+            debtRatio.textContent = debtStr;
+            reserveRatio.textContent = reserveStr;
+            // ----------------------------------------------------
+
             const reports = currentTimeframe === 'annual' ? income.annualReports : income.quarterlyReports;
             if (!reports || reports.length === 0) {
                 showError('해당 기간의 데이터가 없습니다.');
@@ -864,7 +932,7 @@
                                         colorClass = change > 0 ? 'text-red-500' : change < 0 ? 'text-blue-500' : 'text-gray-400';
                                         changeStr = `${change > 0 ? '▲' : change < 0 ? '▼' : ''} ${Math.abs(change).toFixed(1)}%`;
                                     }
-                                    growthHtml = `<span class="text-xs ${colorClass} ml-2 font-semibold">(${changeStr})</span>`;
+                                    growthHtml = `<span class="text-xs ${colorClass} ml-1 font-semibold">(${changeStr})</span>`;
                                 }
                             }
                         }
@@ -873,10 +941,9 @@
                         if (metric.label === '시가총액 / 영업이익') {
                              cellContent = `<div class="flex justify-center items-center h-full"><span class="font-bold text-gray-900">${formatNumber(val, metric.format)}</span></div>`;
                         } else {
-                             // 수정됨: 숫자 우측정렬(11글자) + 공백 + 등락률
                              cellContent = `<div class="flex items-center justify-start h-full">
                                 <span class="w-[11ch] text-right font-bold text-gray-900 shrink-0">${formatNumber(val, metric.format)}</span>
-                                <span class="ml-1.5">${growthHtml}</span>
+                                ${growthHtml}
                             </div>`;
                         }
 
@@ -898,16 +965,15 @@
                 html += `</tr></thead><tbody>`;
 
                 yearHeaders.forEach((date, rowIndex) => {
-                    let dateStr = date.substring(0, 4);
-                    let dateLabel = `<span class="font-bold text-gray-900">${dateStr}</span><span class="text-gray-500 text-xs ml-0.5">-${date.substring(5)}</span>`;
+                    let dateLabel = date.substring(0, 4);
                     if (currentTimeframe === 'quarterly') {
-                        const q = getQuarter(date, fiscalEndMonth);
-                        dateLabel = `<span class="font-bold text-gray-900">${dateStr}</span><span class="text-gray-500 text-xs">-${date.substring(5)}</span> <span class="font-bold text-blue-600 ml-0.5">${q}</span>`;
+                        dateLabel += ` <span class="font-normal text-gray-600 ml-0.5">${getQuarter(date, fiscalEndMonth)}</span>`;
                     }
                     
                     html += `<tr class="even:bg-gray-50 hover:bg-gray-100 transition-colors">
                         <td class="p-1 border border-gray-300 font-medium text-gray-800 sticky left-0 z-10 bg-white even:bg-gray-50 hover:bg-gray-100 whitespace-nowrap shadow-[1px_0_0_0_rgba(0,0,0,0.05)] text-center text-sm">
-                             <div class="flex items-center justify-center gap-0.5">${dateLabel}</div>
+                             <span class="font-bold">${dateLabel}</span>
+                             <span class="text-xs text-gray-500 ml-1">(${formatFullDate(date)})</span>
                         </td>`;
                     
                     keyMetrics.forEach(metric => {
@@ -942,7 +1008,6 @@
                         if (metric.label === '시가총액 / 영업이익') {
                              cellContent = `<div class="flex justify-center items-center h-full"><span class="font-bold text-gray-900">${formatNumber(val, metric.format)}</span></div>`;
                         } else {
-                             // 수정됨: 세로 보기에도 동일하게 적용 (숫자 우측정렬 11칸 + 공백 + 등락률)
                              cellContent = `<div class="flex items-center justify-start h-full">
                                 <span class="w-[11ch] text-right font-bold text-gray-900 shrink-0">${formatNumber(val, metric.format)}</span>
                                 <span class="ml-1.5">${growthHtml}</span>
