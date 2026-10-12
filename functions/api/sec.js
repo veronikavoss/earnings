@@ -141,14 +141,52 @@ function parseSecFacts(json, ticker) {
     };
 }
 
-async function getTickerMap(requestOrigin) {
+const POPULAR_CIK_FALLBACK = {
+    'AAPL': '320193',
+    'NVDA': '1045810',
+    'MSFT': '789019',
+    'TSLA': '1318605',
+    'AMZN': '1018724',
+    'GOOGL': '1652044',
+    'GOOG': '1652044',
+    'META': '1326801',
+    'MU': '723125',
+    'AMD': '2488',
+    'INTC': '50863',
+    'NFLX': '1065280',
+    'AVGO': '1730168',
+    'IBM': '51143',
+    'QCOM': '804328'
+};
+
+async function getTickerMap(requestOrigin, context) {
     if (cachedTickerMap && cachedTickerMap.size > 0) {
         return cachedTickerMap;
     }
 
     const map = new Map();
+    // 인기 티커 우선 초기화
+    Object.entries(POPULAR_CIK_FALLBACK).forEach(([t, c]) => map.set(t, c));
 
-    // 1차: Pages 내부 정적 자산(/company_tickers.json)에서 로드
+    // 1차: Cloudflare Pages ASSETS 바인딩에서 내부 파일 로드
+    if (context?.env?.ASSETS) {
+        try {
+            const assetRes = await context.env.ASSETS.fetch(new URL('/company_tickers.json', requestOrigin));
+            if (assetRes.ok) {
+                const data = await assetRes.json();
+                const list = Array.isArray(data) ? data : Object.values(data);
+                list.forEach(item => {
+                    if (item?.ticker && item?.cik_str != null) {
+                        map.set(item.ticker.toUpperCase(), String(item.cik_str));
+                    }
+                });
+                cachedTickerMap = map;
+                return map;
+            }
+        } catch (e) {}
+    }
+
+    // 2차: Pages URL 자체 fetch
     try {
         const localRes = await fetch(`${requestOrigin}/company_tickers.json`);
         if (localRes.ok) {
@@ -162,11 +200,25 @@ async function getTickerMap(requestOrigin) {
             cachedTickerMap = map;
             return map;
         }
-    } catch (e) {
-        console.warn('Local tickers load failed:', e);
-    }
+    } catch (e) {}
 
-    // 2차: SEC 공식 티커 매핑 파일에서 로드
+    // 3차: GitHub Raw 저장소에서 직접 로드
+    try {
+        const ghRes = await fetch('https://raw.githubusercontent.com/veronikavoss/earnings/main/company_tickers.json');
+        if (ghRes.ok) {
+            const data = await ghRes.json();
+            const list = Array.isArray(data) ? data : Object.values(data);
+            list.forEach(item => {
+                if (item?.ticker && item?.cik_str != null) {
+                    map.set(item.ticker.toUpperCase(), String(item.cik_str));
+                }
+            });
+            cachedTickerMap = map;
+            return map;
+        }
+    } catch (e) {}
+
+    // 4차: SEC 공식 티커 매핑 파일에서 로드
     try {
         const secRes = await fetch('https://www.sec.gov/files/company_tickers.json', {
             headers: { 'User-Agent': 'EarningsViewer admin@earningsviewer.io' }
@@ -182,9 +234,7 @@ async function getTickerMap(requestOrigin) {
             cachedTickerMap = map;
             return map;
         }
-    } catch (e) {
-        console.warn('SEC tickers load failed:', e);
-    }
+    } catch (e) {}
 
     return map;
 }
@@ -217,7 +267,7 @@ export async function onRequest(context) {
     }
 
     try {
-        const tickerMap = await getTickerMap(url.origin);
+        const tickerMap = await getTickerMap(url.origin, context);
         const cik = tickerMap.get(ticker);
         if (!cik) {
             return new Response(JSON.stringify({ ok: false, error: `티커 '${ticker}'의 CIK 정보를 찾을 수 없습니다.` }), {
