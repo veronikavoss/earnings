@@ -72,9 +72,70 @@
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans py-6 px-4 sm:px-6 lg:px-8">
-    <div class="bg-white p-6 md:p-12 rounded-lg shadow-xl w-full max-w-5xl mx-auto my-4">
-        <h1 class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-4 md:mb-6">기업 실적 검색기</h1>
+    <div class="bg-white p-6 md:p-12 rounded-lg shadow-xl w-full max-w-5xl mx-auto my-4 relative">
+        <!-- 상단 헤더 & 설정 버튼 -->
+        <div class="flex justify-between items-center mb-4 md:mb-6">
+            <div class="w-8"></div>
+            <h1 class="text-2xl md:text-3xl font-bold text-center text-gray-800 flex-1">기업 실적 검색기</h1>
+            <button id="openSettingsBtn" class="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors" title="API 설정">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
+        </div>
         <p class="text-center text-gray-600 mb-6 md:mb-8 text-sm md:text-base">미국 상장 기업의 티커(Ticker)를 입력하세요 (예: AAPL, MSFT, IBM)</p>
+
+        <!-- API Key 설정 모달 -->
+        <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 text-left relative animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4 border-b pb-3">
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <span>⚙️ API 설정</span>
+                    </h3>
+                    <button id="closeSettingsBtn" class="text-gray-400 hover:text-gray-600 text-xl font-bold p-1">&times;</button>
+                </div>
+                <div class="space-y-4 text-sm text-gray-600">
+                    <!-- Alpha Vantage Key 설정 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label for="avApiKeyInput" class="block font-semibold text-gray-700">Alpha Vantage API Key (재무제표 조회용)</label>
+                            <a href="https://www.alphavantage.co/support/#api-key" target="_blank" class="text-xs text-blue-600 hover:underline font-medium">새 무료 키 발급 ↗</a>
+                        </div>
+                        <input type="text" id="avApiKeyInput" placeholder="새 API 키 입력 (여러 개는 쉼표로 구분)" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono">
+                        <p class="text-xs text-gray-500 mt-1">무료 키는 일일 25회 한도가 있습니다. 한도 초과 시 이메일만으로 10초 만에 새 키를 무료 발급받아 등록할 수 있습니다.</p>
+                    </div>
+
+                    <!-- Finnhub Key 설정 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label for="finnhubApiKeyInput" class="block font-semibold text-gray-700">Finnhub API Key (실시간 주가 / 로고용)</label>
+                            <a href="https://finnhub.io" target="_blank" class="text-xs text-blue-600 hover:underline font-medium">무료 키 발급 ↗</a>
+                        </div>
+                        <input type="text" id="finnhubApiKeyInput" placeholder="예: c1234567890abcdef..." 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono">
+                        <p class="text-xs text-gray-500 mt-1">Finnhub 무료 키는 분당 60회 실시간 주가와 기업 로고, 시가총액을 안정적으로 제공합니다.</p>
+                    </div>
+
+                    <div class="p-3 bg-indigo-50 rounded-lg text-xs text-indigo-900 leading-relaxed space-y-1.5 border border-indigo-200">
+                        <p class="font-bold flex items-center gap-1">🏛️ 초고속 무제한 엔진 (SEC EDGAR)</p>
+                        <p>폴더 내 <code class="bg-indigo-100 text-indigo-800 px-1 py-0.5 rounded font-mono font-semibold">start.bat</code>을 더블 클릭해 실행하시면 일일 호출 제한 없이 미국 증권거래위원회(SEC) 공식 <strong>15~20년 재무제표</strong>를 0.3초 만에 무제한 조회하실 수 있습니다!</p>
+                        <p class="text-indigo-700 text-[11px]">※ 로컬 서버 미실행 시에는 자동으로 Alpha Vantage 및 로컬 캐시로 동작합니다.</p>
+                    </div>
+
+                    <div class="p-3 bg-blue-50 rounded-lg text-xs text-blue-800 leading-relaxed space-y-1 border border-blue-100">
+                        <p class="font-semibold">💡 API 키 없이도 동작하나요?</p>
+                        <p>기본 내장된 Alpha Vantage 키 풀(3개)과 Yahoo Finance 실시간 주가 백업망이 탑재되어 있습니다. 기본 키의 당일 사용량(25회)이 소진된 경우 위의 링크에서 무료 키를 발급받아 등록하시면 즉시 다시 이용하실 수 있습니다.</p>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-2 border-t pt-3">
+                    <button id="saveSettingsBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg text-sm transition-colors shadow-sm">
+                        저장하기
+                    </button>
+                </div>
+            </div>
+        </div>
         
         <!-- 검색 폼 -->
         <div class="flex flex-col sm:flex-row gap-3 mb-6 md:mb-8 relative">
@@ -100,9 +161,12 @@
             <!-- 요약 정보 카드 -->
             <div id="summaryCard" class="hidden bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-5 mb-6 shadow-sm flex flex-col gap-5">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div class="text-center md:text-left w-full md:w-auto">
-                        <h2 id="companyName" class="text-xl md:text-2xl font-bold text-gray-800 leading-tight"></h2>
-                        <p id="companyTicker" class="text-sm text-gray-500 font-semibold mt-1"></p>
+                    <div class="flex items-center gap-3 w-full md:w-auto justify-center md:justify-start">
+                        <img id="companyLogo" class="hidden w-12 h-12 rounded-full border border-gray-200 object-contain p-1 bg-white shadow-sm shrink-0" alt="Logo">
+                        <div class="text-center md:text-left">
+                            <h2 id="companyName" class="text-xl md:text-2xl font-bold text-gray-800 leading-tight"></h2>
+                            <p id="companyTicker" class="text-sm text-gray-500 font-semibold mt-1"></p>
+                        </div>
                     </div>
                     <div class="flex flex-row gap-6 md:gap-12 w-full md:w-auto justify-center md:justify-end text-center md:text-right">
                         <div>
@@ -175,8 +239,13 @@
             <!-- 결과 헤더 및 컨트롤 -->
             <div id="resultsHeaderContainer" class="hidden flex-col md:flex-row items-center justify-between mb-4 gap-4 border-t border-gray-200 pt-6">
                 
-                <div class="flex items-center gap-3 w-full md:w-auto justify-center md:justify-start">
+                <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-center md:justify-start">
                     <h2 id="resultsHeader" class="text-xl font-semibold text-gray-700 text-center md:text-left">재무 제표</h2>
+                    <span id="sourceBadge" class="hidden text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm"></span>
+                    <span id="cacheBadge" class="hidden text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1.5 shadow-sm">
+                        <span>⚡ 로컬 캐시 (호출수 0)</span>
+                        <button id="refreshCacheBtn" class="hover:text-emerald-900 font-bold underline cursor-pointer" title="API로 최신 데이터 강제 재조회">새로고침 🔄</button>
+                    </span>
                     <button id="toggleLayoutBtn" class="flex items-center gap-1 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 px-2 py-1 rounded text-xs font-medium transition-colors shadow-sm h-7">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -247,6 +316,7 @@
         const summaryCard = document.getElementById('summaryCard');
         const companyName = document.getElementById('companyName');
         const companyTicker = document.getElementById('companyTicker');
+        const companyLogo = document.getElementById('companyLogo');
         const currentPrice = document.getElementById('currentPrice');
         const priceChange = document.getElementById('priceChange');
         const marketCap = document.getElementById('marketCap');
@@ -264,9 +334,43 @@
         const calcUnitDisplay = document.getElementById('calcUnitDisplay');
         const calcResult = document.getElementById('calcResult');
 
+        // 출처 및 캐시 관련 요소
+        const sourceBadge = document.getElementById('sourceBadge');
+        const cacheBadge = document.getElementById('cacheBadge');
+        const refreshCacheBtn = document.getElementById('refreshCacheBtn');
+
+        // 설정 모달 요소
+        const openSettingsBtn = document.getElementById('openSettingsBtn');
+        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const finnhubApiKeyInput = document.getElementById('finnhubApiKeyInput');
+        const avApiKeyInput = document.getElementById('avApiKeyInput');
+
+        if (refreshCacheBtn) {
+            refreshCacheBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (fetchedData && fetchedData.ticker) {
+                    clearCachedEarnings(fetchedData.ticker);
+                    searchFilings(true);
+                }
+            });
+        }
+
         // --- 2. API 설정 ---
-        const ALPHA_VANTAGE_API_KEYS = ["IOLM32O12PSE4LDJ", "Q3H5NC59JKHFVB7X", "5I1RLIUUUEEM3LSR"];
+        const DEFAULT_ALPHA_VANTAGE_KEYS = ["IOLM32O12PSE4LDJ", "Q3H5NC59JKHFVB7X", "5I1RLIUUUEEM3LSR"];
         const KEXIM_API_KEY = "ixCOgz4fZCVMO1h0wypjsh6r75on2HlP"; 
+        let finnhubApiKey = localStorage.getItem('finnhub_api_key') || '';
+
+        function getActiveAlphaVantageKeys() {
+            const customKeysStr = localStorage.getItem('alpha_vantage_keys') || '';
+            const customKeys = customKeysStr.split(',').map(k => k.trim()).filter(Boolean);
+            if (customKeys.length > 0) {
+                // 사용자가 입력한 키를 최우선으로, 그 뒤에 기본 키 풀을 배치
+                return [...customKeys, ...DEFAULT_ALPHA_VANTAGE_KEYS];
+            }
+            return DEFAULT_ALPHA_VANTAGE_KEYS;
+        }
 
         // --- 3. 전역 상태 ---
         let currentTimeframe = 'annual';
@@ -283,8 +387,171 @@
 
         // --- 4. 초기화 및 이벤트 리스너 ---
         window.addEventListener('DOMContentLoaded', async () => {
+            if (finnhubApiKeyInput) finnhubApiKeyInput.value = finnhubApiKey;
+            if (avApiKeyInput) avApiKeyInput.value = localStorage.getItem('alpha_vantage_keys') || '';
             await fetchTickerData();
         });
+
+        // 설정 모달 이벤트
+        if (openSettingsBtn) {
+            openSettingsBtn.addEventListener('click', () => {
+                finnhubApiKeyInput.value = localStorage.getItem('finnhub_api_key') || '';
+                if (avApiKeyInput) avApiKeyInput.value = localStorage.getItem('alpha_vantage_keys') || '';
+                settingsModal.classList.remove('hidden');
+            });
+        }
+        if (closeSettingsBtn) {
+            closeSettingsBtn.addEventListener('click', () => {
+                settingsModal.classList.add('hidden');
+            });
+        }
+        if (saveSettingsBtn) {
+            saveSettingsBtn.addEventListener('click', () => {
+                const finnhubVal = finnhubApiKeyInput.value.trim();
+                localStorage.setItem('finnhub_api_key', finnhubVal);
+                finnhubApiKey = finnhubVal;
+
+                if (avApiKeyInput) {
+                    const avVal = avApiKeyInput.value.trim();
+                    localStorage.setItem('alpha_vantage_keys', avVal);
+                }
+
+                settingsModal.classList.add('hidden');
+                if (fetchedData) {
+                    searchFilings();
+                }
+            });
+        }
+        if (settingsModal) {
+            settingsModal.addEventListener('click', (e) => {
+                if (e.target === settingsModal) settingsModal.classList.add('hidden');
+            });
+        }
+
+        // --- 4-1. 스마트 로컬 캐싱 (Cache-First) 시스템 ---
+        const CACHE_PREFIX = 'earnings_cache_';
+        const CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000; // 14일 유효 (재무제표는 분기 단위로 발표)
+
+        function getCachedEarnings(ticker) {
+            try {
+                const raw = localStorage.getItem(CACHE_PREFIX + ticker.toUpperCase());
+                if (!raw) return null;
+                const item = JSON.parse(raw);
+                if (Date.now() - item.timestamp > CACHE_TTL_MS) {
+                    localStorage.removeItem(CACHE_PREFIX + ticker.toUpperCase());
+                    return null;
+                }
+                return item.data;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function setCachedEarnings(ticker, data) {
+            try {
+                const item = {
+                    timestamp: Date.now(),
+                    data: {
+                        income: data.income,
+                        balance: data.balance,
+                        earnings: data.earnings,
+                        source: data.source || 'Alpha Vantage'
+                    }
+                };
+                localStorage.setItem(CACHE_PREFIX + ticker.toUpperCase(), JSON.stringify(item));
+            } catch (e) {
+                console.warn('Cache save failed:', e);
+            }
+        }
+
+        function clearCachedEarnings(ticker) {
+            try {
+                localStorage.removeItem(CACHE_PREFIX + ticker.toUpperCase());
+            } catch (e) {}
+        }
+
+        async function fetchSecEdgarData(ticker) {
+            // 1. 상대 경로 시도 (http://localhost:8000 등 로컬 서버로 접속 시)
+            try {
+                const res = await fetchWithTimeout(`/api/sec?ticker=${encodeURIComponent(ticker)}`, { timeout: 4000 });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json && json.ok && json.income) return json;
+                }
+            } catch (e) {}
+
+            // 2. 로컬 백엔드 절대 경로 시도 (file:/// 탐색기로 열었으나 server.js가 켜져있을 때)
+            try {
+                const res = await fetchWithTimeout(`http://127.0.0.1:8000/api/sec?ticker=${encodeURIComponent(ticker)}`, { timeout: 4000 });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json && json.ok && json.income) return json;
+                }
+            } catch (e) {}
+
+            return null;
+        }
+
+        async function fetchFinnhubData(ticker) {
+            const key = finnhubApiKey || localStorage.getItem('finnhub_api_key');
+            if (!key) return { profile: null, quote: null };
+            try {
+                const [profileRes, quoteRes] = await Promise.all([
+                    fetchWithTimeout(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${key}`, { timeout: 3500 }).catch(() => null),
+                    fetchWithTimeout(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${key}`, { timeout: 3500 }).catch(() => null)
+                ]);
+                let profile = null;
+                let quote = null;
+                if (profileRes && profileRes.ok) {
+                    const pJson = await profileRes.json().catch(() => null);
+                    if (pJson && (pJson.name || pJson.ticker || pJson.marketCapitalization)) profile = pJson;
+                }
+                if (quoteRes && quoteRes.ok) {
+                    const qJson = await quoteRes.json().catch(() => null);
+                    if (qJson && typeof qJson.c === 'number' && qJson.c > 0) quote = qJson;
+                }
+                return { profile, quote };
+            } catch (e) {
+                console.warn('Finnhub data fetch error:', e);
+                return { profile: null, quote: null };
+            }
+        }
+
+        async function fetchYahooQuote(ticker) {
+            try {
+                const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}`;
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+                const res = await fetchWithTimeout(proxyUrl, { timeout: 4000 });
+                if (res.ok) {
+                    const json = await res.json();
+                    const meta = json?.chart?.result?.[0]?.meta;
+                    if (meta && meta.regularMarketPrice) {
+                        const price = meta.regularMarketPrice;
+                        const prevClose = meta.chartPreviousClose || price;
+                        const changePercent = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
+                        return { price, prevClose, changePercent };
+                    }
+                }
+            } catch (e) {
+                try {
+                    const fallbackUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}`)}`;
+                    const res2 = await fetchWithTimeout(fallbackUrl, { timeout: 4000 });
+                    if (res2.ok) {
+                        const json2 = await res2.json();
+                        const meta2 = json2?.chart?.result?.[0]?.meta;
+                        if (meta2 && meta2.regularMarketPrice) {
+                            const price = meta2.regularMarketPrice;
+                            const prevClose = meta2.chartPreviousClose || price;
+                            const changePercent = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
+                            return { price, prevClose, changePercent };
+                        }
+                    }
+                } catch (err2) {
+                    console.warn('Yahoo fallback failed:', err2);
+                }
+            }
+            return null;
+        }
 
         async function fetchTickerData() {
             try {
@@ -589,25 +856,33 @@
         }
 
         async function fetchAlphaVantage(fn, ticker, initialKeyIndex, retries = 5) {
+            const keys = getActiveAlphaVantageKeys();
             let currentKeyIndex = initialKeyIndex;
             for (let i = 0; i <= retries; i++) {
-                const apiKey = ALPHA_VANTAGE_API_KEYS[currentKeyIndex % ALPHA_VANTAGE_API_KEYS.length];
+                const apiKey = keys[currentKeyIndex % keys.length];
                 const url = `https://www.alphavantage.co/query?function=${fn}&symbol=${ticker}&apikey=${apiKey}`;
                 try {
                     const res = await fetch(url);
                     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                     const data = await res.json();
                     if (data['Information'] || data['Note']) {
-                        if (i < retries) {
+                        const info = (data['Information'] || data['Note'] || '').toLowerCase();
+                        // 유료 전용 엔드포인트 안내인 경우만 그대로 반환
+                        if (info.includes('premium endpoint')) {
+                            return data;
+                        }
+                        // 일일 한도 초과(25회) 또는 초당 빈도 제한인 경우 다른 키로 즉시 전환하여 재시도
+                        if (i < retries && keys.length > 1) {
                             currentKeyIndex++;
-                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            await new Promise(resolve => setTimeout(resolve, 800));
                             continue;
                         }
                     }
                     return data;
                 } catch (e) {
-                    if (i < retries) {
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    if (i < retries && keys.length > 1) {
+                        currentKeyIndex++;
+                        await new Promise(resolve => setTimeout(resolve, 800));
                         continue;
                     }
                     throw e;
@@ -616,7 +891,7 @@
             return { 'Error Message': 'Max retries exceeded' };
         }
 
-        async function searchFilings() {
+        async function searchFilings(forceRefresh = false) {
             const ticker = tickerInput.value.trim().toUpperCase();
             if (!ticker) {
                 showError('티커를 입력하세요.');
@@ -629,30 +904,92 @@
             fetchedData = null;
 
             try {
-                const functions = ['INCOME_STATEMENT', 'BALANCE_SHEET', 'EARNINGS', 'OVERVIEW', 'GLOBAL_QUOTE'];
-                const promises = functions.map(async (fn, index) => {
-                    await new Promise(resolve => setTimeout(resolve, index * 600));
-                    return fetchAlphaVantage(fn, ticker, index);
-                });
-                const exchangeRatePromise = getExchangeRate();
-                const results = await Promise.all([...promises, exchangeRatePromise]);
-                const [incomeData, balanceData, earningsData, overviewData, quoteData, exchangeRateData] = results;
+                // 1. 강제 새로고침이 아닌 경우 로컬 캐시 먼저 확인
+                const cached = !forceRefresh ? getCachedEarnings(ticker) : null;
+                let incomeData = cached?.income;
+                let balanceData = cached?.balance;
+                let earningsData = cached?.earnings;
+                let dataSource = cached?.source || 'Alpha Vantage';
+                let isFromCache = !!(incomeData && balanceData);
 
-                const getError = (d, name) => {
-                    if (!d) return `${name} 데이터 없음`;
-                    if (d['Error Message']) return d['Error Message'];
-                    if (d['Information'] || d['Note']) return 'API 한도 초과';
-                    return null;
-                };
-                const errorMsg = getError(incomeData, '수익') || getError(balanceData, '대차대조표') || 
-                                 getError(earningsData, 'EPS') || getError(overviewData, '개요') || getError(quoteData, '주가');
-                if (errorMsg) throw new Error(errorMsg.includes('limit') || errorMsg === 'API 한도 초과' ? 'API 한도 초과' : errorMsg);
-                if (!incomeData.annualReports && !incomeData.quarterlyReports) throw new Error('재무 데이터를 찾을 수 없습니다.');
+                let quoteData = {};
+
+                // 2. 캐시가 없는 경우 재무제표 획득 파이프라인
+                //    - 1순위: 초고속 무제한 SEC EDGAR (start.bat 또는 node server.js 구동 시)
+                //    - 2순위: Alpha Vantage 로테이션 키 풀 (서버 미실행 순수 파일 모드 시 자동 폴백)
+                if (!isFromCache) {
+                    let secResult = null;
+                    try {
+                        secResult = await fetchSecEdgarData(ticker);
+                    } catch (e) {
+                        console.warn('SEC EDGAR direct fetch failed, falling back to Alpha Vantage:', e);
+                    }
+
+                    if (secResult && secResult.income && secResult.balance) {
+                        incomeData = secResult.income;
+                        balanceData = secResult.balance;
+                        earningsData = null;
+                        dataSource = 'SEC EDGAR';
+                        setCachedEarnings(ticker, { income: incomeData, balance: balanceData, earnings: earningsData, source: dataSource });
+                    } else {
+                        // Alpha Vantage 로테이션 키 호출
+                        const functions = ['INCOME_STATEMENT', 'BALANCE_SHEET', 'EARNINGS', 'GLOBAL_QUOTE'];
+                        const avPromises = functions.map(async (fn, index) => {
+                            await new Promise(resolve => setTimeout(resolve, index * 700));
+                            return fetchAlphaVantage(fn, ticker, index);
+                        });
+                        const avResults = await Promise.all(avPromises);
+
+                        incomeData = avResults[0];
+                        balanceData = avResults[1];
+                        earningsData = avResults[2];
+                        quoteData = avResults[3];
+                        dataSource = 'Alpha Vantage';
+
+                        const getError = (d, name) => {
+                            if (!d) return `${name} 데이터 없음`;
+                            if (d['Error Message']) return d['Error Message'];
+                            if (d['Information'] || d['Note']) {
+                                const info = (d['Information'] || d['Note'] || '').toLowerCase();
+                                if (info.includes('premium endpoint')) return null;
+                                if (info.includes('rate limit') || info.includes('25 requests') || info.includes('sparingly') || info.includes('frequency')) {
+                                    return 'API 호출 한도(일일 25회) 초과';
+                                }
+                                return 'API 한도 초과';
+                            }
+                            return null;
+                        };
+
+                        const errorMsg = getError(incomeData, '손익계산서') || getError(balanceData, '대차대조표');
+                        if (errorMsg) throw new Error(errorMsg);
+                        if (!incomeData.annualReports && !incomeData.quarterlyReports) throw new Error('재무 데이터를 찾을 수 없습니다.');
+
+                        setCachedEarnings(ticker, { income: incomeData, balance: balanceData, earnings: earningsData, source: dataSource });
+                    }
+                }
+
+                // 3. 실시간 주가 및 환율 병렬 호출 (Finnhub + Yahoo Quote + 환율)
+                const [finnhubData, exchangeRateData, yahooQuoteData] = await Promise.all([
+                    fetchFinnhubData(ticker),
+                    getExchangeRate(),
+                    fetchYahooQuote(ticker)
+                ]);
 
                 usdToKrwRate = exchangeRateData.rate;
                 document.querySelector('input[name="currency"][value="krw"]').disabled = false;
 
-                fetchedData = { ticker, income: incomeData, balance: balanceData, earnings: earningsData, overview: overviewData, quote: quoteData['Global Quote'] || {}, exchangeSource: exchangeRateData.source };
+                fetchedData = { 
+                    ticker, 
+                    income: incomeData, 
+                    balance: balanceData, 
+                    earnings: earningsData, 
+                    quote: (quoteData && quoteData['Global Quote']) ? quoteData['Global Quote'] : {}, 
+                    finnhub: finnhubData,
+                    yahooQuote: yahooQuoteData,
+                    isFromCache: isFromCache,
+                    dataSource: dataSource,
+                    exchangeSource: exchangeRateData.source 
+                };
                 optionsArea.classList.remove('hidden'); 
                 
                 if (currentTimeframe === 'annual') {
@@ -667,10 +1004,21 @@
                 updateExchangeRateInfo(fetchedData.exchangeSource);
             } catch (error) {
                 let msg = error.message;
-                let showBtn = false;
-                if (msg.includes('API 한도') || msg.includes('limit')) {
-                    msg = 'API 호출 한도를 초과했습니다.<br>잠시 후 다시 시도해주세요.';
-                    showBtn = true;
+                let showBtn = true;
+                if (msg.includes('API 한도') || msg.includes('limit') || msg.includes('초과')) {
+                    msg = `<strong>Alpha Vantage API 호출 한도(일일 25회)가 초과되었습니다.</strong><br><br>
+                           현재 Alpha Vantage 일일 무료 호출 한도가 소진되었습니다.<br>
+                           <div class="mt-3 text-xs text-gray-700 bg-gray-50 p-4 rounded-xl border border-gray-200 text-left space-y-2">
+                               <p class="font-bold text-gray-900 text-sm">💡 즉시 무제한 해결 방법:</p>
+                               <div class="p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-950">
+                                   <p class="font-semibold text-indigo-900 mb-0.5">🏛️ 1. 무제한 SEC EDGAR 엔진 실행 (강력 추천)</p>
+                                   <p>프로젝트 폴더의 <code class="bg-indigo-200 text-indigo-900 px-1 py-0.5 rounded font-mono font-bold">start.bat</code>을 실행하시면 호출 제한 없이 15~20년 공식 재무제표를 즉시 조회할 수 있습니다.</p>
+                               </div>
+                               <div class="p-2.5 bg-blue-50 border border-blue-200 rounded-lg text-blue-950">
+                                   <p class="font-semibold text-blue-900 mb-0.5">🔑 2. 새 무료 Alpha Vantage 키 등록</p>
+                                   <p>우측 상단 <strong>⚙️ 설정</strong> 아이콘 클릭 → <a href="https://www.alphavantage.co/support/#api-key" target="_blank" class="text-blue-600 underline font-semibold">새 키 무료 발급(10초 소요)</a> 후 등록하시면 바로 조회됩니다.</p>
+                               </div>
+                           </div>`;
                 }
                 showError(msg, showBtn);
             } finally {
@@ -782,32 +1130,90 @@
         }
 
         function displayResults(ticker, allData) {
-            const { income, balance, earnings, overview, quote } = allData;
+            const { income, balance, earnings, quote, finnhub, yahooQuote } = allData;
             
             resultsHeaderContainer.classList.remove('hidden');
             resultsHeaderContainer.classList.add('flex');
             summaryCard.classList.remove('hidden');
             calculatorContainer.classList.remove('hidden');
             
-            companyName.textContent = overview?.Name || ticker;
+            // 데이터 출처 뱃지 및 캐시 뱃지 제어
+            if (sourceBadge) {
+                if (allData.dataSource === 'SEC EDGAR') {
+                    sourceBadge.className = 'text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm';
+                    sourceBadge.innerHTML = '<span>🏛️ SEC EDGAR (공시 데이터, 15+년)</span>';
+                    sourceBadge.classList.remove('hidden');
+                } else if (allData.dataSource === 'Alpha Vantage') {
+                    sourceBadge.className = 'text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm';
+                    sourceBadge.innerHTML = '<span>📡 Alpha Vantage</span>';
+                    sourceBadge.classList.remove('hidden');
+                } else {
+                    sourceBadge.classList.add('hidden');
+                }
+            }
+
+            if (cacheBadge) {
+                if (allData.isFromCache) cacheBadge.classList.remove('hidden');
+                else cacheBadge.classList.add('hidden');
+            }
+
+            // 회사명 결정: 1순위 Finnhub 프로필, 2순위 로컬 SEC 티커 목록, 3순위 티커
+            const matchedTicker = tickerList.find(c => c && c.ticker && c.ticker.toUpperCase() === ticker.toUpperCase());
+            const defaultName = matchedTicker ? matchedTicker.title : ticker;
+            const finnhubProfile = finnhub?.profile || (finnhub?.name ? finnhub : null);
+            companyName.textContent = finnhubProfile?.name || defaultName;
             companyTicker.textContent = ticker;
+
+            // 로고 이미지 표시
+            const compLogo = finnhubProfile?.logo;
+            if (compLogo) {
+                companyLogo.src = compLogo;
+                companyLogo.classList.remove('hidden');
+            } else {
+                companyLogo.classList.add('hidden');
+            }
             
-            const price = parseFloat(quote['05. price']);
-            const prevClose = parseFloat(quote['08. previous close']);
-            const shares = parseFloat(overview?.SharesOutstanding);
-            const changePercent = parseFloat((quote['10. change percent'] || '0').replace('%', ''));
+            // 실시간 주가 결정 (1순위 Finnhub Quote, 2순위 Alpha Vantage, 3순위 Yahoo Finance)
+            let price = null;
+            let prevClose = null;
+            let changePercent = 0;
+
+            if (finnhub?.quote && typeof finnhub.quote.c === 'number' && finnhub.quote.c > 0) {
+                price = finnhub.quote.c;
+                prevClose = finnhub.quote.pc || price;
+                changePercent = typeof finnhub.quote.dp === 'number' ? finnhub.quote.dp : (prevClose ? ((price - prevClose) / prevClose) * 100 : 0);
+            } else if (quote && quote['05. price'] && !isNaN(parseFloat(quote['05. price']))) {
+                price = parseFloat(quote['05. price']);
+                prevClose = parseFloat(quote['08. previous close']);
+                changePercent = parseFloat((quote['10. change percent'] || '0').replace('%', ''));
+            } else if (yahooQuote && yahooQuote.price) {
+                price = yahooQuote.price;
+                prevClose = yahooQuote.prevClose;
+                changePercent = yahooQuote.changePercent;
+            }
             
             priceChange.textContent = `${changePercent >= 0 ? '▲' : '▼'} ${Math.abs(changePercent).toFixed(2)}%`;
             priceChange.className = `text-xs md:text-sm font-bold px-2 py-0.5 rounded whitespace-nowrap ${changePercent >= 0 ? 'text-red-600 bg-red-50' : changePercent < 0 ? 'text-blue-600 bg-blue-50' : 'text-gray-600 bg-gray-50'}`;
             currentPrice.className = `text-2xl md:text-3xl font-bold tracking-tight ${changePercent >= 0 ? 'text-red-600' : changePercent < 0 ? 'text-blue-600' : 'text-gray-800'}`;
             
-            let apiMktCap = parseFloat(overview?.MarketCapitalization);
-            let mktCap = apiMktCap;
-            if (apiMktCap && price && prevClose && prevClose !== 0) {
-                const priceRatio = price / prevClose;
-                mktCap = apiMktCap * priceRatio;
-            } else if (price && shares) {
+            // 최신 대차대조표 보고서
+            const latestBalance = balance.quarterlyReports && balance.quarterlyReports.length > 0 
+                ? balance.quarterlyReports[0] 
+                : (balance.annualReports && balance.annualReports.length > 0 ? balance.annualReports[0] : null);
+
+            // 시가총액 산출 (1순위 Finnhub 시총, 2순위 주가 * 대차대조표 발행주식수, 3순위 추정)
+            let mktCap = 0;
+            const balanceShares = parseFloat(latestBalance?.commonStockSharesOutstanding);
+            const finnhubShares = parseFloat(finnhubProfile?.shareOutstanding);
+            const shares = !isNaN(finnhubShares) && finnhubShares > 0 ? finnhubShares * 1_000_000 : balanceShares;
+
+            if (finnhubProfile?.marketCapitalization && !isNaN(parseFloat(finnhubProfile.marketCapitalization))) {
+                // Finnhub의 marketCapitalization 단위는 백만 달러 (Millions)
+                mktCap = parseFloat(finnhubProfile.marketCapitalization) * 1_000_000;
+            } else if (price && shares && !isNaN(shares)) {
                 mktCap = price * shares;
+            } else if (latestBalance?.totalAssets) {
+                mktCap = parseFloat(latestBalance.totalAssets);
             }
             currentMarketCapUSD = mktCap;
 
@@ -815,10 +1221,6 @@
             marketCap.textContent = formatNumber(mktCap);
 
             // --- 재무 비율 계산 ---
-            const latestBalance = balance.quarterlyReports && balance.quarterlyReports.length > 0 
-                ? balance.quarterlyReports[0] 
-                : (balance.annualReports && balance.annualReports.length > 0 ? balance.annualReports[0] : null);
-
             let capStr = '-';
             let debtStr = '-';
             let reserveStr = '-';
@@ -1120,6 +1522,9 @@
         // --- UI 유틸리티 ---
         function resetUI() {
             resultsList.innerHTML = '';
+            if (companyLogo) companyLogo.classList.add('hidden');
+            if (sourceBadge) sourceBadge.classList.add('hidden');
+            if (cacheBadge) cacheBadge.classList.add('hidden');
             exchangeRateInfo.classList.add('hidden');
             resultsHeaderContainer.classList.add('hidden');
             optionsArea.classList.add('hidden'); 
