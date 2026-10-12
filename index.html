@@ -224,33 +224,31 @@
             <!-- 환율 정보 -->
             <div id="exchangeRateInfo" class="hidden mb-6 text-right text-xs text-gray-400 italic pr-1"></div>
 
-            <!-- 결과 헤더 및 컨트롤 -->
-            <div id="resultsHeaderContainer" class="hidden flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-4 border-t border-gray-200 pt-6">
+            <!-- 데이터 출처 및 캐시 상태 배지 (독립 상단 라인) -->
+            <div id="badgeContainer" class="hidden flex-wrap items-center gap-2 mb-3">
+                <span id="sourceBadge" class="hidden text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm"></span>
+                <span id="cacheBadge" class="hidden text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1.5 shadow-sm">
+                    <span>⚡ 로컬 캐시 (호출수 0)</span>
+                    <button id="refreshCacheBtn" class="hover:text-emerald-900 font-bold underline cursor-pointer" title="API로 최신 데이터 강제 재조회">새로고침 🔄</button>
+                </span>
+            </div>
+
+            <!-- 결과 헤더 및 컨트롤 (재무제표, 계산기, 슬라이더 수평 1선 일직선 배치) -->
+            <div id="resultsHeaderContainer" class="hidden flex-col md:flex-row items-center justify-between mb-4 gap-3 border-t border-gray-200 pt-4">
                 
-                <!-- 1. 좌측: 배지(위) + 재무제표 타이틀 & 행/열 전환(아래) -->
-                <div class="flex flex-col gap-1.5 shrink-0">
-                    <!-- 재무제표 위: 출처 배지 & 로컬 캐시 배지 -->
-                    <div class="flex items-center gap-2">
-                        <span id="sourceBadge" class="hidden text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm"></span>
-                        <span id="cacheBadge" class="hidden text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1.5 shadow-sm">
-                            <span>⚡ 로컬 캐시 (호출수 0)</span>
-                            <button id="refreshCacheBtn" class="hover:text-emerald-900 font-bold underline cursor-pointer" title="API로 최신 데이터 강제 재조회">새로고침 🔄</button>
-                        </span>
-                    </div>
-                    <!-- 재무제표 타이틀 및 행/열 전환 버튼 -->
-                    <div class="flex items-center gap-3">
-                        <h2 id="resultsHeader" class="text-xl md:text-2xl font-bold text-gray-800 tracking-tight whitespace-nowrap">재무 제표</h2>
-                        <button id="toggleLayoutBtn" class="flex items-center gap-1 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 px-2.5 py-1 rounded text-xs font-medium transition-colors shadow-sm h-7 whitespace-nowrap">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            <span id="layoutBtnText">행/열 전환</span>
-                        </button>
-                    </div>
+                <!-- 1. 좌측: 재무제표 타이틀 & 행/열 전환 -->
+                <div class="flex items-center gap-2.5 shrink-0">
+                    <h2 id="resultsHeader" class="text-xl md:text-2xl font-bold text-gray-800 tracking-tight whitespace-nowrap">재무 제표</h2>
+                    <button id="toggleLayoutBtn" class="flex items-center gap-1 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 px-2.5 py-1 rounded text-xs font-medium transition-colors shadow-sm h-7 whitespace-nowrap">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span id="layoutBtnText">행/열 전환</span>
+                    </button>
                 </div>
                 
-                <!-- 2. 중앙: 예상 실적 계산기 (가로 1줄 고정, 줄바꿈 없음) -->
-                <div id="calculatorContainer" class="hidden flex flex-nowrap items-center gap-2 bg-purple-50 px-3.5 py-2 rounded-lg border border-purple-100 shadow-sm whitespace-nowrap shrink-0 overflow-x-auto">
+                <!-- 2. 중앙: 예상 실적 계산기 (가로 1줄 고정) -->
+                <div id="calculatorContainer" class="hidden flex flex-nowrap items-center gap-2 bg-purple-50 px-3.5 py-1.5 rounded-lg border border-purple-100 shadow-sm whitespace-nowrap shrink-0 overflow-x-auto">
                     <div class="flex items-center gap-2 border-r border-purple-200 pr-2 mr-0.5 shrink-0 whitespace-nowrap">
                         <label class="flex items-center space-x-1 cursor-pointer text-xs font-semibold text-purple-900 whitespace-nowrap shrink-0">
                             <input type="radio" name="calcMode" value="amount" class="form-radio text-purple-600 focus:ring-purple-500 w-3.5 h-3.5" checked>
@@ -272,9 +270,9 @@
                 </div>
 
                 <!-- 3. 우측: 연도 선택 슬라이더 -->
-                <div id="sliderContainer" class="flex items-center gap-3 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 shrink-0">
-                    <span id="sliderLabel" class="text-sm font-medium text-gray-700 whitespace-nowrap w-20 text-right">최근 10년</span>
-                    <input type="range" id="yearSlider" min="1" max="20" value="10" class="w-32 h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                <div id="sliderContainer" class="flex items-center gap-2.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 shrink-0">
+                    <span id="sliderLabel" class="text-sm font-medium text-gray-700 whitespace-nowrap w-16 text-right">최근 10년</span>
+                    <input type="range" id="yearSlider" min="1" max="20" value="10" class="w-28 sm:w-32 h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600">
                 </div>
             </div>
 
@@ -330,6 +328,7 @@
         const calcResult = document.getElementById('calcResult');
 
         // 출처 및 캐시 관련 요소
+        const badgeContainer = document.getElementById('badgeContainer');
         const sourceBadge = document.getElementById('sourceBadge');
         const cacheBadge = document.getElementById('cacheBadge');
         const refreshCacheBtn = document.getElementById('refreshCacheBtn');
@@ -352,10 +351,11 @@
         }
 
         // --- 2. API 설정 ---
-        // Finnhub 기본 키 (발급받으신 키가 있다면 아래에 입력하시면 기본값으로 안전하게 적용됩니다)
-        const DEFAULT_FINNHUB_KEY = ""; 
+        // Finnhub 기본 키 (공식 발급 키)
+        const DEFAULT_FINNHUB_KEY = "db671p9r01qmd5li9u0gdb671p9r01qmd5li9u10"; 
         const KEXIM_API_KEY = "ixCOgz4fZCVMO1h0wypjsh6r75on2HlP"; 
-        let finnhubApiKey = localStorage.getItem('finnhub_api_key') || DEFAULT_FINNHUB_KEY;
+        let storedFinnhubKey = localStorage.getItem('finnhub_api_key');
+        let finnhubApiKey = (storedFinnhubKey && storedFinnhubKey.trim().length > 0) ? storedFinnhubKey : DEFAULT_FINNHUB_KEY;
 
         // --- 3. 전역 상태 ---
         let currentTimeframe = 'annual';
@@ -1029,6 +1029,10 @@
         function displayResults(ticker, allData) {
             const { income, balance, earnings, quote, finnhub, yahooQuote } = allData;
             
+            if (badgeContainer) {
+                badgeContainer.classList.remove('hidden');
+                badgeContainer.classList.add('flex');
+            }
             resultsHeaderContainer.classList.remove('hidden');
             resultsHeaderContainer.classList.add('flex');
             summaryCard.classList.remove('hidden');
@@ -1420,6 +1424,7 @@
         function resetUI() {
             resultsList.innerHTML = '';
             if (companyLogo) companyLogo.classList.add('hidden');
+            if (badgeContainer) badgeContainer.classList.add('hidden');
             if (sourceBadge) sourceBadge.classList.add('hidden');
             if (cacheBadge) cacheBadge.classList.add('hidden');
             exchangeRateInfo.classList.add('hidden');
