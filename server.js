@@ -134,54 +134,6 @@ function parseSecFacts(json, ticker) {
         }
     });
 
-    // Q4 자동 복원: 연간 10-K 보고서가 있으나 4분기(Q4) 10-Q가 없는 경우 (미국 공시 규정상 Q4는 10-Q 없이 10-K만 제출함)
-    annualReports.forEach(ann => {
-        const annDate = ann.fiscalDateEnding;
-        if (quarterlyMap.has(annDate)) return;
-
-        const annRev = Number(ann.totalRevenue);
-        const annOp = Number(ann.operatingIncome);
-        if (isNaN(annRev) && isNaN(annOp)) return;
-
-        const annTime = new Date(annDate).getTime();
-        const prevQuarters = Array.from(quarterlyMap.values()).filter(q => {
-            const qTime = new Date(q.fiscalDateEnding).getTime();
-            const diffDays = (annTime - qTime) / (1000 * 60 * 60 * 24);
-            return diffDays > 30 && diffDays <= 330;
-        }).sort((a, b) => new Date(b.fiscalDateEnding) - new Date(a.fiscalDateEnding));
-
-        if (prevQuarters.length >= 3) {
-            const q123 = prevQuarters.slice(0, 3);
-            let sumRev = 0, hasRev = true;
-            let sumOp = 0, hasOp = true;
-
-            for (const q of q123) {
-                if (q.totalRevenue != null && !isNaN(Number(q.totalRevenue))) {
-                    sumRev += Number(q.totalRevenue);
-                } else {
-                    hasRev = false;
-                }
-                if (q.operatingIncome != null && !isNaN(Number(q.operatingIncome))) {
-                    sumOp += Number(q.operatingIncome);
-                } else {
-                    hasOp = false;
-                }
-            }
-
-            const q4Data = { fiscalDateEnding: annDate };
-            if (!isNaN(annRev) && hasRev && annRev >= sumRev) {
-                q4Data.totalRevenue = String(annRev - sumRev);
-            }
-            if (!isNaN(annOp) && hasOp) {
-                q4Data.operatingIncome = String(annOp - sumOp);
-            }
-
-            if (q4Data.totalRevenue != null || q4Data.operatingIncome != null) {
-                quarterlyMap.set(annDate, q4Data);
-            }
-        }
-    });
-
     const quarterlyReports = Array.from(quarterlyMap.values())
         .filter(r => r.totalRevenue != null || r.operatingIncome != null)
         .sort((a, b) => new Date(b.fiscalDateEnding) - new Date(a.fiscalDateEnding));
