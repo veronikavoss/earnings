@@ -3,42 +3,68 @@
 
 let cachedTickerMap = null;
 
-// SEC US-GAAP 파서 함수
+// 2. SEC EDGAR 통합 재무제표 파서 (US-GAAP + IFRS + 외국계 ADR 20-F/6-K + 금융주 완벽 지원)
 function parseSecFacts(json, ticker) {
     const gaap = json?.facts?.['us-gaap'] || {};
+    const ifrs = json?.facts?.['ifrs-full'] || {};
     const dei = json?.facts?.['dei'] || {};
 
     function getAllEntries(tagCandidates) {
         let all = [];
         for (const tag of tagCandidates) {
-            const concept = gaap[tag];
-            if (concept && concept.units && concept.units.USD && concept.units.USD.length > 0) {
-                all.push(...concept.units.USD);
+            const concept = gaap[tag] || ifrs[tag];
+            if (concept && concept.units) {
+                // USD 단위 최우선, 없을 시 자국 통화(EUR, TWD, CNY, JPY 등) 첫 번째 단위 사용
+                const unitKey = concept.units.USD ? 'USD' : Object.keys(concept.units)[0];
+                if (unitKey && Array.isArray(concept.units[unitKey]) && concept.units[unitKey].length > 0) {
+                    all.push(...concept.units[unitKey]);
+                }
             }
         }
         return all;
     }
 
+    // 매출 태그 (일반 제조/테크 US-GAAP + IFRS + 금융/은행)
     const revEntries = getAllEntries([
         'RevenueFromContractWithCustomerExcludingAssessedTax',
         'SalesRevenueNet',
         'Revenues',
+        'Revenue',
+        'RevenueFromContractsWithCustomers',
+        'RevenueFromSaleOfGoods',
+        'RevenuesNetOfInterestExpense', // 은행/금융
         'RevenueFromContractWithCustomerIncludingAssessedTax',
         'TotalRevenuesAndOtherIncome'
     ]);
 
-    const opEntries = getAllEntries(['OperatingIncomeLoss', 'OperatingIncome']);
+    // 영업이익 태그 (US-GAAP + IFRS + fallback)
+    const opEntries = getAllEntries([
+        'OperatingIncomeLoss',
+        'OperatingIncome',
+        'ProfitLossFromOperatingActivities',
+        'OperatingProfitLoss',
+        'ProfitLossBeforeTax',
+        'ProfitLoss'
+    ]);
+
+    // 자산, 부채, 자본, 현금, 잉여금
     const assetEntries = getAllEntries(['Assets']);
     const liabEntries = getAllEntries(['Liabilities']);
     const equityEntries = getAllEntries([
         'StockholdersEquity',
-        'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'
+        'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest',
+        'Equity',
+        'EquityAttributableToOwnersOfParent'
     ]);
     const cashEntries = getAllEntries([
         'CashAndCashEquivalentsAtCarryingValue',
-        'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents'
+        'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents',
+        'CashAndCashEquivalents'
     ]);
-    const reEntries = getAllEntries(['RetainedEarningsAccumulatedDeficit']);
+    const reEntries = getAllEntries([
+        'RetainedEarningsAccumulatedDeficit',
+        'RetainedEarnings'
+    ]);
 
     let shareEntries = [];
     if (dei['EntityCommonStockSharesOutstanding']?.units?.shares) {
@@ -47,11 +73,15 @@ function parseSecFacts(json, ticker) {
     if (gaap['CommonStockSharesOutstanding']?.units?.shares) {
         shareEntries.push(...gaap['CommonStockSharesOutstanding'].units.shares);
     }
+    if (ifrs['NumberOfSharesOutstanding']?.units?.shares) {
+        shareEntries.push(...ifrs['NumberOfSharesOutstanding'].units.shares);
+    }
 
-    // 연간 리포트 (10-K, FY)
+    // 연간 리포트 (미국 10-K, 외국계 ADR 20-F, 캐나다 40-F)
+    const annualForms = ['10-K', '20-F', '40-F'];
     const annualMap = new Map();
     revEntries.forEach(item => {
-        if (item.form === '10-K' && item.fp === 'FY' && item.end && item.val != null) {
+        if (annualForms.includes(item.form) && item.end && item.val != null) {
             if (item.start) {
                 const days = (new Date(item.end) - new Date(item.start)) / (1000 * 60 * 60 * 24);
                 if (days < 300) return;
@@ -63,7 +93,7 @@ function parseSecFacts(json, ticker) {
     });
 
     opEntries.forEach(item => {
-        if (item.form === '10-K' && item.fp === 'FY' && item.end && item.val != null) {
+        if (annualForms.includes(item.form) && item.end && item.val != null) {
             if (item.start) {
                 const days = (new Date(item.end) - new Date(item.start)) / (1000 * 60 * 60 * 24);
                 if (days < 300) return;
@@ -78,15 +108,15 @@ function parseSecFacts(json, ticker) {
         .filter(r => r.totalRevenue != null || r.operatingIncome != null)
         .sort((a, b) => new Date(b.fiscalDateEnding) - new Date(a.fiscalDateEnding));
 
-    // 분기 리포트 (10-Q)
+    // 분기/반기 리포트 (미국 10-Q, 외국계 6-K)
     const quarterlyMap = new Map();
     revEntries.forEach(item => {
         if (item.end && item.val != null) {
             let isQuarter = false;
             if (item.start) {
                 const days = (new Date(item.end) - new Date(item.start)) / (1000 * 60 * 60 * 24);
-                if (days >= 60 && days <= 115) isQuarter = true;
-            } else if (item.form === '10-Q') {
+                if (days >= 60 && days <= 125) isQuarter = true;
+            } else if (item.form === '10-Q' || item.form === '6-K') {
                 isQuarter = true;
             }
             if (isQuarter) {
@@ -102,8 +132,8 @@ function parseSecFacts(json, ticker) {
             let isQuarter = false;
             if (item.start) {
                 const days = (new Date(item.end) - new Date(item.start)) / (1000 * 60 * 60 * 24);
-                if (days >= 60 && days <= 115) isQuarter = true;
-            } else if (item.form === '10-Q') {
+                if (days >= 60 && days <= 125) isQuarter = true;
+            } else if (item.form === '10-Q' || item.form === '6-K') {
                 isQuarter = true;
             }
             if (isQuarter) {
@@ -156,7 +186,21 @@ const POPULAR_CIK_FALLBACK = {
     'NFLX': '1065280',
     'AVGO': '1730168',
     'IBM': '51143',
-    'QCOM': '804328'
+    'QCOM': '804328',
+    'TSM': '1046179',
+    'ASML': '937966',
+    'BABA': '1577552',
+    'NVO': '353278',
+    'TM': '1094517',
+    'SONY': '313838',
+    'ARM': '1973239',
+    'CPNG': '1834584',
+    'JPM': '19617',
+    'BAC': '70858',
+    'PLTR': '1321655',
+    'COIN': '1679788',
+    'SMCI': '1375365',
+    'LLY': '59478'
 };
 
 async function getTickerMap(requestOrigin, context) {
