@@ -224,13 +224,9 @@
             <!-- 환율 정보 -->
             <div id="exchangeRateInfo" class="hidden mb-6 text-right text-xs text-gray-400 italic pr-1"></div>
 
-            <!-- 데이터 출처 및 캐시 상태 배지 (독립 상단 라인) -->
+            <!-- 데이터 출처 배지 (독립 상단 라인) -->
             <div id="badgeContainer" class="hidden flex-wrap items-center gap-2 mb-3">
                 <span id="sourceBadge" class="hidden text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm"></span>
-                <span id="cacheBadge" class="hidden text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1.5 shadow-sm">
-                    <span>⚡ 로컬 캐시 (호출수 0)</span>
-                    <button id="refreshCacheBtn" class="hover:text-emerald-900 font-bold underline cursor-pointer" title="API로 최신 데이터 강제 재조회">새로고침 🔄</button>
-                </span>
             </div>
 
             <!-- 결과 헤더 및 컨트롤 (재무제표, 계산기, 슬라이더 수평 1선 일직선 배치) -->
@@ -327,11 +323,9 @@
         const calcUnitDisplay = document.getElementById('calcUnitDisplay');
         const calcResult = document.getElementById('calcResult');
 
-        // 출처 및 캐시 관련 요소
+        // 출처 관련 요소
         const badgeContainer = document.getElementById('badgeContainer');
         const sourceBadge = document.getElementById('sourceBadge');
-        const cacheBadge = document.getElementById('cacheBadge');
-        const refreshCacheBtn = document.getElementById('refreshCacheBtn');
 
         // 설정 모달 요소
         const openSettingsBtn = document.getElementById('openSettingsBtn');
@@ -339,16 +333,6 @@
         const saveSettingsBtn = document.getElementById('saveSettingsBtn');
         const settingsModal = document.getElementById('settingsModal');
         const finnhubApiKeyInput = document.getElementById('finnhubApiKeyInput');
-
-        if (refreshCacheBtn) {
-            refreshCacheBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (fetchedData && fetchedData.ticker) {
-                    clearCachedEarnings(fetchedData.ticker);
-                    searchFilings(true);
-                }
-            });
-        }
 
         // --- 2. API 설정 ---
         // Finnhub 기본 키 (공식 발급 키)
@@ -407,46 +391,12 @@
         }
 
         // --- 4-1. 스마트 로컬 캐싱 (Cache-First) 시스템 ---
-        const CACHE_PREFIX = 'earnings_cache_';
-        const CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000; // 14일 유효 (재무제표는 분기 단위로 발표)
-
-        function getCachedEarnings(ticker) {
-            try {
-                const raw = localStorage.getItem(CACHE_PREFIX + ticker.toUpperCase());
-                if (!raw) return null;
-                const item = JSON.parse(raw);
-                if (Date.now() - item.timestamp > CACHE_TTL_MS) {
-                    localStorage.removeItem(CACHE_PREFIX + ticker.toUpperCase());
-                    return null;
-                }
-                return item.data;
-            } catch (e) {
-                return null;
-            }
-        }
-
-        function setCachedEarnings(ticker, data) {
-            try {
-                const item = {
-                    timestamp: Date.now(),
-                    data: {
-                        income: data.income,
-                        balance: data.balance,
-                        earnings: data.earnings,
-                        source: data.source || 'Alpha Vantage'
-                    }
-                };
-                localStorage.setItem(CACHE_PREFIX + ticker.toUpperCase(), JSON.stringify(item));
-            } catch (e) {
-                console.warn('Cache save failed:', e);
-            }
-        }
-
-        function clearCachedEarnings(ticker) {
-            try {
-                localStorage.removeItem(CACHE_PREFIX + ticker.toUpperCase());
-            } catch (e) {}
-        }
+        // 로컬 캐시 청소 (항상 실시간 최신 SEC 공식 데이터 직접 조회)
+        try {
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('earnings_cache_')) localStorage.removeItem(key);
+            });
+        } catch (e) {}
 
         async function fetchSecEdgarData(ticker) {
             // 1. 상대 경로 시도 (Cloudflare Pages 또는 로컬 웹 서버 접속 시)
@@ -846,22 +796,13 @@
             fetchedData = null;
 
             try {
-                // 1. 강제 새로고침이 아닌 경우 로컬 캐시 먼저 확인 (14일 유효)
-                const cached = !forceRefresh ? getCachedEarnings(ticker) : null;
-                let incomeData = cached?.income;
-                let balanceData = cached?.balance;
-                let isFromCache = !!(incomeData && balanceData);
-
-                // 2. 캐시가 없는 경우 초고속 SEC EDGAR 엔진 호출
-                if (!isFromCache) {
-                    const secResult = await fetchSecEdgarData(ticker);
-                    if (!secResult || !secResult.income || !secResult.balance) {
-                        throw new Error('SEC_CONNECTION_ERROR');
-                    }
-                    incomeData = secResult.income;
-                    balanceData = secResult.balance;
-                    setCachedEarnings(ticker, { income: incomeData, balance: balanceData, source: 'SEC EDGAR' });
+                // 1. 초고속 SEC EDGAR 엔진 실시간 호출 (무제한 공식 데이터)
+                const secResult = await fetchSecEdgarData(ticker);
+                if (!secResult || !secResult.income || !secResult.balance) {
+                    throw new Error('SEC_CONNECTION_ERROR');
                 }
+                const incomeData = secResult.income;
+                const balanceData = secResult.balance;
 
                 // 3. 실시간 주가 및 환율 병렬 호출 (Finnhub + Yahoo Quote + 환율)
                 const [finnhubData, exchangeRateData, yahooQuoteData] = await Promise.all([
@@ -1051,11 +992,6 @@
                 } else {
                     sourceBadge.classList.add('hidden');
                 }
-            }
-
-            if (cacheBadge) {
-                if (allData.isFromCache) cacheBadge.classList.remove('hidden');
-                else cacheBadge.classList.add('hidden');
             }
 
             // 회사명 결정: 1순위 Finnhub 프로필, 2순위 로컬 SEC 티커 목록, 3순위 티커
@@ -1426,7 +1362,6 @@
             if (companyLogo) companyLogo.classList.add('hidden');
             if (badgeContainer) badgeContainer.classList.add('hidden');
             if (sourceBadge) sourceBadge.classList.add('hidden');
-            if (cacheBadge) cacheBadge.classList.add('hidden');
             exchangeRateInfo.classList.add('hidden');
             resultsHeaderContainer.classList.add('hidden');
             optionsArea.classList.add('hidden'); 
