@@ -37,13 +37,16 @@ function parseSecFacts(json, ticker) {
         'TotalRevenuesAndOtherIncome'
     ]);
 
-    // 영업이익 태그 (US-GAAP + IFRS + fallback)
+    // 영업이익 및 이익 태그 (일반 제조/테크 + IFRS + 제약/바이오 세전이익 + 당기순이익)
     const opEntries = getAllEntries([
         'OperatingIncomeLoss',
         'OperatingIncome',
         'ProfitLossFromOperatingActivities',
         'OperatingProfitLoss',
+        'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest', // 일라이 릴리(LLY), 화이자(PFE), 머크(MRK) 등 제약사
+        'IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments',
         'ProfitLossBeforeTax',
+        'NetIncomeLoss',
         'ProfitLoss'
     ]);
 
@@ -200,7 +203,11 @@ const POPULAR_CIK_FALLBACK = {
     'PLTR': '1321655',
     'COIN': '1679788',
     'SMCI': '1375365',
-    'LLY': '59478'
+    'LLY': '59478',
+    'PFE': '78003',
+    'MRK': '310158',
+    'JNJ': '200406',
+    'ABBV': '1551152'
 };
 
 async function getTickerMap(requestOrigin, context) {
