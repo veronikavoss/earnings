@@ -1,5 +1,6 @@
 @echo off
 chcp 65001 > nul
+cd /d "%~dp0"
 title Earnings Viewer - SEC EDGAR Server
 echo =======================================================
 echo   Earnings Viewer - 기업 실적 검색기 (SEC EDGAR)
