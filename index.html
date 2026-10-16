@@ -73,57 +73,11 @@
 </head>
 <body class="bg-gray-100 min-h-screen font-sans py-6 px-4 sm:px-6 lg:px-8">
     <div class="bg-white p-6 md:p-12 rounded-lg shadow-xl w-full max-w-5xl mx-auto my-4 relative">
-        <!-- 상단 헤더 & 설정 버튼 -->
-        <div class="flex justify-between items-center mb-4 md:mb-6">
-            <div class="w-8"></div>
-            <h1 class="text-2xl md:text-3xl font-bold text-center text-gray-800 flex-1">기업 실적 검색기</h1>
-            <button id="openSettingsBtn" class="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-colors" title="API 설정">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-            </button>
+        <!-- 상단 헤더 -->
+        <div class="text-center mb-4 md:mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800">기업 실적 검색기</h1>
         </div>
         <p class="text-center text-gray-600 mb-6 md:mb-8 text-sm md:text-base">미국 상장 기업의 티커(Ticker)를 입력하세요 (예: AAPL, MSFT, IBM)</p>
-
-        <!-- API Key 설정 모달 -->
-        <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
-            <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 text-left relative animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
-                <div class="flex justify-between items-center mb-4 border-b pb-3">
-                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <span>⚙️ API 설정</span>
-                    </h3>
-                    <button id="closeSettingsBtn" class="text-gray-400 hover:text-gray-600 text-xl font-bold p-1">&times;</button>
-                </div>
-                <div class="space-y-4 text-sm text-gray-600">
-                    <!-- Finnhub Key 설정 -->
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <label for="finnhubApiKeyInput" class="block font-semibold text-gray-700">Finnhub API Key (실시간 주가 / 기업 로고용)</label>
-                            <a href="https://finnhub.io" target="_blank" class="text-xs text-blue-600 hover:underline font-medium">무료 키 발급 ↗</a>
-                        </div>
-                        <input type="text" id="finnhubApiKeyInput" placeholder="예: c1234567890abcdef..." 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono">
-                        <p class="text-xs text-gray-500 mt-1">Finnhub 무료 키를 등록하시면 분당 60회 실시간 주가와 기업 로고, 시가총액을 안정적으로 가져옵니다.</p>
-                    </div>
-
-                    <div class="p-3 bg-indigo-50 rounded-lg text-xs text-indigo-900 leading-relaxed space-y-1.5 border border-indigo-200">
-                        <p class="font-bold flex items-center gap-1">🏛️ 재무제표 데이터: SEC EDGAR 공식 엔진</p>
-                        <p>손익계산서/대차대조표는 미국 증권거래위원회(SEC) 공식 <strong>15~20년 데이터</strong>가 일일 한도 없이 완전 무료로 자동 제공됩니다. (별도의 API 키가 필요하지 않습니다)</p>
-                    </div>
-
-                    <div class="p-3 bg-blue-50 rounded-lg text-xs text-blue-800 leading-relaxed space-y-1 border border-blue-100">
-                        <p class="font-semibold">💡 Finnhub 키 없이도 동작하나요?</p>
-                        <p>네! 키를 등록하지 않으셔도 Yahoo Finance 백업망을 통해 실시간 주가와 시가총액이 자동으로 정상 계산됩니다.</p>
-                    </div>
-                </div>
-                <div class="mt-6 flex justify-end gap-2 border-t pt-3">
-                    <button id="saveSettingsBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg text-sm transition-colors shadow-sm">
-                        저장하기
-                    </button>
-                </div>
-            </div>
-        </div>
         
         <!-- 검색 폼 -->
         <div class="flex flex-col sm:flex-row gap-3 mb-6 md:mb-8 relative">
@@ -327,19 +281,11 @@
         const badgeContainer = document.getElementById('badgeContainer');
         const sourceBadge = document.getElementById('sourceBadge');
 
-        // 설정 모달 요소
-        const openSettingsBtn = document.getElementById('openSettingsBtn');
-        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-        const settingsModal = document.getElementById('settingsModal');
-        const finnhubApiKeyInput = document.getElementById('finnhubApiKeyInput');
-
         // --- 2. API 설정 ---
-        // Finnhub 기본 키 (공식 발급 키)
+        // Finnhub 기본 키 (내장 공식 키)
         const DEFAULT_FINNHUB_KEY = "db671p9r01qmd5li9u0gdb671p9r01qmd5li9u10"; 
         const KEXIM_API_KEY = "ixCOgz4fZCVMO1h0wypjsh6r75on2HlP"; 
-        let storedFinnhubKey = localStorage.getItem('finnhub_api_key');
-        let finnhubApiKey = (storedFinnhubKey && storedFinnhubKey.trim().length > 0) ? storedFinnhubKey : DEFAULT_FINNHUB_KEY;
+        const finnhubApiKey = DEFAULT_FINNHUB_KEY;
 
         // --- 3. 전역 상태 ---
         let currentTimeframe = 'annual';
@@ -356,39 +302,8 @@
 
         // --- 4. 초기화 및 이벤트 리스너 ---
         window.addEventListener('DOMContentLoaded', async () => {
-            if (finnhubApiKeyInput) finnhubApiKeyInput.value = finnhubApiKey;
             await fetchTickerData();
         });
-
-        // 설정 모달 이벤트
-        if (openSettingsBtn) {
-            openSettingsBtn.addEventListener('click', () => {
-                finnhubApiKeyInput.value = localStorage.getItem('finnhub_api_key') || DEFAULT_FINNHUB_KEY;
-                settingsModal.classList.remove('hidden');
-            });
-        }
-        if (closeSettingsBtn) {
-            closeSettingsBtn.addEventListener('click', () => {
-                settingsModal.classList.add('hidden');
-            });
-        }
-        if (saveSettingsBtn) {
-            saveSettingsBtn.addEventListener('click', () => {
-                const finnhubVal = finnhubApiKeyInput.value.trim();
-                localStorage.setItem('finnhub_api_key', finnhubVal);
-                finnhubApiKey = finnhubVal;
-
-                settingsModal.classList.add('hidden');
-                if (fetchedData) {
-                    searchFilings();
-                }
-            });
-        }
-        if (settingsModal) {
-            settingsModal.addEventListener('click', (e) => {
-                if (e.target === settingsModal) settingsModal.classList.add('hidden');
-            });
-        }
 
         // --- 4-1. 스마트 로컬 캐싱 (Cache-First) 시스템 ---
         // 로컬 캐시 청소 (항상 실시간 최신 SEC 공식 데이터 직접 조회)
