@@ -14,10 +14,21 @@ try {
         const list = Array.isArray(raw) ? raw : Object.values(raw);
         list.forEach(item => {
             if (item && item.ticker && item.cik_str != null) {
-                tickerMap.set(item.ticker.toUpperCase(), String(item.cik_str));
+                const t = item.ticker.toUpperCase().trim();
+                const cik = String(item.cik_str);
+                tickerMap.set(t, cik);
+                // 점(.)과 하이픈(-) 변환 변형 등록 (예: BRK-B <-> BRK.B <-> BRKB)
+                if (t.includes('-')) {
+                    tickerMap.set(t.replace(/-/g, '.'), cik);
+                    tickerMap.set(t.replace(/-/g, ''), cik);
+                }
+                if (t.includes('.')) {
+                    tickerMap.set(t.replace(/\./g, '-'), cik);
+                    tickerMap.set(t.replace(/\./g, ''), cik);
+                }
             }
         });
-        console.log(`[SEC Server] Loaded ${tickerMap.size} tickers into memory.`);
+        console.log(`[SEC Server] Loaded ${tickerMap.size} ticker variants into memory.`);
     }
 } catch (e) {
     console.error('[SEC Server] Failed to load company_tickers.json:', e);
@@ -245,23 +256,44 @@ function parseSecFacts(json, ticker) {
 // 3. SEC 데이터 비동기 요청 처리
 async function fetchSecEdgar(ticker) {
     const cleanTicker = ticker.toUpperCase().trim();
-    const cik = tickerMap.get(cleanTicker);
+    let cik = tickerMap.get(cleanTicker)
+           || tickerMap.get(cleanTicker.replace(/\./g, '-'))
+           || tickerMap.get(cleanTicker.replace(/-/g, '.'))
+           || tickerMap.get(cleanTicker.replace(/[\.\-]/g, ''));
+
     if (!cik) {
-        throw new Error(`티커 '${cleanTicker}'의 CIK 정보를 찾을 수 없습니다.`);
+        throw new Error(`티커 '${cleanTicker}'의 CIK 정보를 찾을 수 없습니다. 올바른 미국 상장 주식 티커인지 확인해 주세요.`);
     }
 
     const paddedCik = String(cik).padStart(10, '0');
     const secUrl = `https://data.sec.gov/api/xbrl/companyfacts/CIK${paddedCik}.json`;
     
-    const response = await fetch(secUrl, {
-        headers: {
-            'User-Agent': 'EarningsViewer admin@earningsviewer.io',
-            'Accept-Encoding': 'gzip, deflate'
+    let response;
+    let attempts = 0;
+    while (attempts < 2) {
+        attempts++;
+        try {
+            response = await fetch(secUrl, {
+                headers: {
+                    'User-Agent': 'EarningsViewer admin@earningsviewer.io',
+                    'Accept-Encoding': 'gzip, deflate'
+                }
+            });
+            if (response.ok) break;
+            if (response.status === 404) {
+                throw new Error(`해당 기업('${cleanTicker}')은 SEC에 등록된 10-K/10-Q/20-F XBRL 재무제표 공시가 없습니다. (ETF, 스팩, 펀드 등은 개별 기업 재무제표가 공시되지 않습니다.)`);
+            }
+            if (response.status === 429) {
+                throw new Error('SEC EDGAR 요청 한도(초당 10회) 초과로 잠시 지연되었습니다. 1~2초 후 다시 시도해 주세요.');
+            }
+        } catch (netErr) {
+            if (attempts >= 2) throw netErr;
+            await new Promise(r => setTimeout(r, 800));
         }
-    });
+    }
 
-    if (!response.ok) {
-        throw new Error(`SEC EDGAR 응답 오류: HTTP ${response.status}`);
+    if (!response || !response.ok) {
+        throw new Error(`SEC EDGAR 응답 오류: HTTP ${response ? response.status : '네트워크 연결 실패'}`);
     }
 
     const factsJson = await response.json();
@@ -349,6 +381,23 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': contentType });
         res.end(content);
     });
+});
+
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`\n⚠️ [포트 충돌] 포트 ${PORT}이 이미 다른 프로세스에 의해 사용 중입니다.`);
+        console.error(`기존 실행 중인 서버를 사용하거나, 포트를 종료 후 다시 실행해 주세요.\n`);
+    } else {
+        console.error('[SEC Server Error]:', err);
+    }
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('[Uncaught Exception]:', err.message);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('[Unhandled Rejection]:', reason);
 });
 
 server.listen(PORT, '0.0.0.0', () => {

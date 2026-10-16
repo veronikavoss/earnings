@@ -258,6 +258,25 @@ const POPULAR_CIK_FALLBACK = {
     'ABBV': '1551152'
 };
 
+function populateTickerMap(map, list) {
+    if (!Array.isArray(list)) list = Object.values(list || {});
+    list.forEach(item => {
+        if (item?.ticker && item?.cik_str != null) {
+            const t = item.ticker.toUpperCase().trim();
+            const cik = String(item.cik_str);
+            map.set(t, cik);
+            if (t.includes('-')) {
+                map.set(t.replace(/-/g, '.'), cik);
+                map.set(t.replace(/-/g, ''), cik);
+            }
+            if (t.includes('.')) {
+                map.set(t.replace(/\./g, '-'), cik);
+                map.set(t.replace(/\./g, ''), cik);
+            }
+        }
+    });
+}
+
 async function getTickerMap(requestOrigin, context) {
     if (cachedTickerMap && cachedTickerMap.size > 0) {
         return cachedTickerMap;
@@ -265,7 +284,10 @@ async function getTickerMap(requestOrigin, context) {
 
     const map = new Map();
     // 인기 티커 우선 초기화
-    Object.entries(POPULAR_CIK_FALLBACK).forEach(([t, c]) => map.set(t, c));
+    Object.entries(POPULAR_CIK_FALLBACK).forEach(([t, c]) => {
+        map.set(t, c);
+        if (t.includes('-')) map.set(t.replace(/-/g, '.'), c);
+    });
 
     // 1차: Cloudflare Pages ASSETS 바인딩에서 내부 파일 로드
     if (context?.env?.ASSETS) {
@@ -273,12 +295,7 @@ async function getTickerMap(requestOrigin, context) {
             const assetRes = await context.env.ASSETS.fetch(new URL('/company_tickers.json', requestOrigin));
             if (assetRes.ok) {
                 const data = await assetRes.json();
-                const list = Array.isArray(data) ? data : Object.values(data);
-                list.forEach(item => {
-                    if (item?.ticker && item?.cik_str != null) {
-                        map.set(item.ticker.toUpperCase(), String(item.cik_str));
-                    }
-                });
+                populateTickerMap(map, data);
                 cachedTickerMap = map;
                 return map;
             }
@@ -290,12 +307,7 @@ async function getTickerMap(requestOrigin, context) {
         const localRes = await fetch(`${requestOrigin}/company_tickers.json`);
         if (localRes.ok) {
             const data = await localRes.json();
-            const list = Array.isArray(data) ? data : Object.values(data);
-            list.forEach(item => {
-                if (item?.ticker && item?.cik_str != null) {
-                    map.set(item.ticker.toUpperCase(), String(item.cik_str));
-                }
-            });
+            populateTickerMap(map, data);
             cachedTickerMap = map;
             return map;
         }
@@ -306,12 +318,7 @@ async function getTickerMap(requestOrigin, context) {
         const ghRes = await fetch('https://raw.githubusercontent.com/veronikavoss/earnings/main/company_tickers.json');
         if (ghRes.ok) {
             const data = await ghRes.json();
-            const list = Array.isArray(data) ? data : Object.values(data);
-            list.forEach(item => {
-                if (item?.ticker && item?.cik_str != null) {
-                    map.set(item.ticker.toUpperCase(), String(item.cik_str));
-                }
-            });
+            populateTickerMap(map, data);
             cachedTickerMap = map;
             return map;
         }
@@ -324,12 +331,7 @@ async function getTickerMap(requestOrigin, context) {
         });
         if (secRes.ok) {
             const data = await secRes.json();
-            const list = Object.values(data);
-            list.forEach(item => {
-                if (item?.ticker && item?.cik_str != null) {
-                    map.set(item.ticker.toUpperCase(), String(item.cik_str));
-                }
-            });
+            populateTickerMap(map, data);
             cachedTickerMap = map;
             return map;
         }
@@ -367,9 +369,13 @@ export async function onRequest(context) {
 
     try {
         const tickerMap = await getTickerMap(url.origin, context);
-        const cik = tickerMap.get(ticker);
+        let cik = tickerMap.get(ticker)
+               || tickerMap.get(ticker.replace(/\./g, '-'))
+               || tickerMap.get(ticker.replace(/-/g, '.'))
+               || tickerMap.get(ticker.replace(/[\.\-]/g, ''));
+
         if (!cik) {
-            return new Response(JSON.stringify({ ok: false, error: `티커 '${ticker}'의 CIK 정보를 찾을 수 없습니다.` }), {
+            return new Response(JSON.stringify({ ok: false, error: `티커 '${ticker}'의 CIK 정보를 찾을 수 없습니다. 올바른 미국 상장 기업 티커인지 확인해 주세요.` }), {
                 status: 404,
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
@@ -389,7 +395,13 @@ export async function onRequest(context) {
         });
 
         if (!secRes.ok) {
-            return new Response(JSON.stringify({ ok: false, error: `SEC EDGAR 응답 오류: HTTP ${secRes.status}` }), {
+            let errorMsg = `SEC EDGAR 응답 오류: HTTP ${secRes.status}`;
+            if (secRes.status === 404) {
+                errorMsg = `해당 기업('${ticker}')은 SEC에 등록된 10-K/10-Q/20-F XBRL 재무제표 공시가 없습니다. (ETF, 스팩, 펀드 등은 개별 기업 재무제표가 공시되지 않습니다.)`;
+            } else if (secRes.status === 429) {
+                errorMsg = 'SEC EDGAR 요청 한도(초당 10회) 초과로 잠시 지연되었습니다. 1~2초 후 다시 시도해 주세요.';
+            }
+            return new Response(JSON.stringify({ ok: false, error: errorMsg }), {
                 status: secRes.status,
                 headers: {
                     'Content-Type': 'application/json; charset=utf-8',
