@@ -1,0 +1,12 @@
+_worker.js
+worker.js
+server.js
+functions/
+.git/
+.gitignore
+start.bat
+stop.bat
+start_background.vbs
+test_log.txt
+*.md
+wrangler.toml
