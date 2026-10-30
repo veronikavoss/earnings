@@ -112,8 +112,8 @@
                     </div>
                     <div class="flex flex-row gap-6 md:gap-12 w-full md:w-auto justify-center md:justify-end text-center md:text-right">
                         <div>
-                            <p class="text-xs md:text-sm text-gray-500 mb-1">현재 주가</p>
-                            <div class="flex flex-col md:flex-row items-center md:items-baseline justify-end gap-1 md:gap-2">
+                            <p class="text-xs md:text-sm text-gray-500 mb-1 text-center md:text-left">현재 주가</p>
+                            <div class="flex flex-col md:flex-row items-center md:items-baseline justify-center md:justify-start gap-1 md:gap-2">
                                 <p id="currentPrice" class="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">-</p>
                                 <span id="priceChange" class="text-xs md:text-sm font-bold px-2 py-0.5 rounded bg-gray-100 whitespace-nowrap">-</span>
                             </div>
@@ -176,11 +176,12 @@
             </div>
 
             <!-- 환율 정보 -->
-            <div id="exchangeRateInfo" class="hidden mb-6 text-right text-xs text-gray-400 italic pr-1"></div>
+
 
             <!-- 데이터 출처 배지 (독립 상단 라인) -->
-            <div id="badgeContainer" class="hidden flex-wrap items-center gap-2 mb-3">
+            <div id="badgeContainer" class="hidden flex-wrap items-center justify-between gap-2 mb-3">
                 <span id="sourceBadge" class="hidden text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm"></span>
+                <div id="exchangeRateInfo" class="hidden text-right text-xs text-gray-400 italic pr-1 ml-auto"></div>
             </div>
 
             <!-- 결과 헤더 및 컨트롤 (재무제표, 계산기, 슬라이더 수평 1선 일직선 배치) -->
@@ -511,8 +512,9 @@
             radio.addEventListener('change', (e) => {
                 currentCurrency = e.target.value;
                 if (fetchedData) {
+                    if (currentCalcMode === 'amount') { calcInput.value = ''; calcResult.textContent = '-'; }
                     displayResults(fetchedData.ticker, fetchedData);
-                    updateExchangeRateInfo();
+                    updateExchangeRateInfo(fetchedData.exchangeSource);
                 }
             });
         });
@@ -576,7 +578,8 @@
             calcResult.textContent = `${multiple.toFixed(2)}x (${yieldRate.toFixed(1)}%)`;
         }
 
-        function setupCalculator(latestOpIncomeUSD) {
+        function setupCalculator(latestOpIncomeUSD, preserveInput = false) {
+            const prevInputVal = calcInput.value;
             lastBaseOpIncomeUSD = latestOpIncomeUSD;
             let rate = 1;
             if (currentCurrency === 'krw' && usdToKrwRate) rate = usdToKrwRate;
@@ -613,8 +616,13 @@
                 calcInput.placeholder = (incomeInCurr / displayUnit).toFixed(1);
             }
             
-            calcInput.value = '';
-            calcResult.textContent = '-';
+            if (preserveInput && prevInputVal !== '') {
+                calcInput.value = prevInputVal;
+                updateCalculator();
+            } else {
+                calcInput.value = '';
+                calcResult.textContent = '-';
+            }
         }
 
         // --- 5. 헬퍼 함수 ---
@@ -1067,11 +1075,14 @@
                 return;
             }
 
-            if (reports.length > 0) {
+            const annualReports = income.annualReports || [];
+            if (annualReports.length > 0) {
+                const latestAnnualOp = parseFloat(annualReports[0].operatingIncome);
+                setupCalculator(latestAnnualOp, true);
+            } else if (reports.length > 0) {
                 const latestOp = parseFloat(reports[0].operatingIncome);
-                let baseOp = latestOp;
-                if (currentTimeframe === 'quarterly') baseOp = latestOp * 4;
-                setupCalculator(baseOp);
+                const baseOp = currentTimeframe === 'quarterly' ? latestOp * 4 : latestOp;
+                setupCalculator(baseOp, true);
             }
 
             const yearsToShow = parseInt(yearSlider.value);
@@ -1307,6 +1318,8 @@
             summaryCard.classList.add('hidden');
             chartContainer.classList.add('hidden');
             calculatorContainer.classList.add('hidden');
+            calcInput.value = '';
+            calcResult.textContent = '-';
         }
 
         function resetApp() {
