@@ -71,8 +71,8 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen font-sans py-6 px-4 sm:px-6 lg:px-8">
-    <div class="bg-white p-6 md:p-12 rounded-lg shadow-xl w-full max-w-5xl mx-auto my-4 relative">
+<body class="bg-gray-100 min-h-screen font-sans py-4 sm:py-6 px-2.5 sm:px-6 lg:px-8">
+    <div class="bg-white p-4 sm:p-6 md:p-12 rounded-lg shadow-xl w-full max-w-5xl mx-auto my-2 sm:my-4 relative overflow-hidden">
         <!-- 상단 헤더 -->
         <div class="text-center mb-4 md:mb-6">
             <h1 class="text-2xl md:text-3xl font-bold text-gray-800">기업 실적 검색기</h1>
@@ -80,7 +80,7 @@
         <p class="text-center text-gray-600 mb-6 md:mb-8 text-sm md:text-base">미국 상장 기업의 티커(Ticker)를 입력하세요 (예: AAPL, MSFT, IBM)</p>
         
         <!-- 검색 폼 -->
-        <div class="flex flex-col sm:flex-row gap-3 mb-6 md:mb-8 relative">
+        <div class="flex flex-col sm:flex-row gap-3 mb-2.5 relative">
             <div class="relative flex-grow">
                 <input type="text" id="tickerInput" placeholder="티커 또는 회사명 입력 (예: AAPL, Apple)" 
                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow text-lg" 
@@ -90,6 +90,33 @@
             <button id="searchButton" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-lg shadow-sm active:bg-blue-800">
                 검색
             </button>
+        </div>
+
+        <!-- 실시간 거시경제 지표 위젯 (검색창 하단 상시 고정) -->
+        <div id="macroWidget" class="w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1.5 py-2 sm:px-4 sm:py-2.5 mb-6 md:mb-8 shadow-sm">
+            <div class="grid grid-cols-3 divide-x divide-gray-200 items-center">
+                <div class="flex flex-col items-center justify-center px-1 sm:px-3">
+                    <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">실시간 환율<span class="hidden sm:inline"> (USD/KRW)</span></span>
+                    <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                        <span id="macroFxVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                        <span id="macroFxChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center justify-center px-1 sm:px-3">
+                    <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 2년</span>
+                    <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                        <span id="macroUs2yVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                        <span id="macroUs2yChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center justify-center px-1 sm:px-3">
+                    <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 10년</span>
+                    <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                        <span id="macroUs10yVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                        <span id="macroUs10yChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 로딩 및 결과 표시 영역 -->
@@ -129,15 +156,15 @@
                 <div class="grid grid-cols-3 divide-x divide-gray-200 border-t border-gray-200 pt-4 mt-2">
                     <div class="text-center px-2">
                         <p class="text-xs text-gray-500 mb-1 font-medium">자산총액 <span class="text-[10px]">(자기자본)</span></p>
-                        <p id="totalCapital" class="text-sm md:text-base font-bold text-gray-800">-</p>
+                        <p id="totalCapital" class="text-xs sm:text-sm md:text-base font-bold text-gray-800 break-keep leading-snug">-</p>
                     </div>
                     <div class="text-center px-2">
                         <p class="text-xs text-gray-500 mb-1 font-medium">부채총계 <span class="text-[10px]">(부채비율)</span></p>
-                        <p id="debtRatio" class="text-sm md:text-base font-bold text-gray-800">-</p>
+                        <p id="debtRatio" class="text-xs sm:text-sm md:text-base font-bold text-gray-800 break-keep leading-snug">-</p>
                     </div>
                     <div class="text-center px-2">
                         <p class="text-xs text-gray-500 mb-1 font-medium">총현금 <span class="text-[10px]">(총이익 잉여금)</span></p>
-                        <p id="reserveRatio" class="text-sm md:text-base font-bold text-gray-800">-</p>
+                        <p id="reserveRatio" class="text-xs sm:text-sm md:text-base font-bold text-gray-800 break-keep leading-snug">-</p>
                     </div>
                 </div>
             </div>
@@ -185,10 +212,10 @@
             </div>
 
             <!-- 결과 헤더 및 컨트롤 (재무제표, 계산기, 슬라이더 수평 1선 일직선 배치) -->
-            <div id="resultsHeaderContainer" class="hidden flex-col md:flex-row items-center justify-between mb-4 gap-3 border-t border-gray-200 pt-4">
+            <div id="resultsHeaderContainer" class="hidden w-full flex-wrap lg:flex-nowrap items-center justify-between mb-4 gap-2.5 border-t border-gray-200 pt-4">
                 
                 <!-- 1. 좌측: 재무제표 타이틀 & 행/열 전환 -->
-                <div class="flex items-center gap-2.5 shrink-0">
+                <div class="flex items-center gap-2 shrink-0 order-1">
                     <h2 id="resultsHeader" class="text-xl md:text-2xl font-bold text-gray-800 tracking-tight whitespace-nowrap">재무 제표</h2>
                     <button id="toggleLayoutBtn" class="flex items-center gap-1 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 px-2.5 py-1 rounded text-xs font-medium transition-colors shadow-sm h-7 whitespace-nowrap">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -199,7 +226,7 @@
                 </div>
                 
                 <!-- 2. 중앙: 예상 실적 계산기 (가로 1줄 고정) -->
-                <div id="calculatorContainer" class="hidden flex flex-nowrap items-center gap-2 bg-purple-50 px-3.5 py-1.5 rounded-lg border border-purple-100 shadow-sm whitespace-nowrap shrink-0 overflow-x-auto">
+                <div id="calculatorContainer" class="hidden w-full lg:w-auto order-3 lg:order-2 flex flex-wrap sm:flex-nowrap items-center justify-center gap-x-2 gap-y-1.5 bg-purple-50 px-2.5 sm:px-3.5 py-1.5 rounded-lg border border-purple-100 shadow-sm">
                     <div class="flex items-center gap-2 border-r border-purple-200 pr-2 mr-0.5 shrink-0 whitespace-nowrap">
                         <label class="flex items-center space-x-1 cursor-pointer text-xs font-semibold text-purple-900 whitespace-nowrap shrink-0">
                             <input type="radio" name="calcMode" value="amount" class="form-radio text-purple-600 focus:ring-purple-500 w-3.5 h-3.5" checked>
@@ -212,18 +239,18 @@
                     </div>
                     <label for="calcInput" id="calcInputLabel" class="text-xs text-purple-800 font-semibold whitespace-nowrap shrink-0">예상 영업이익:</label>
                     <div class="relative shrink-0">
-                        <input type="number" id="calcInput" placeholder="0" class="w-20 bg-white border border-purple-200 rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-mono">
+                        <input type="number" id="calcInput" placeholder="0" class="w-16 sm:w-20 bg-white border border-purple-200 rounded px-2 py-0.5 sm:py-1 text-xs sm:text-sm text-right focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-mono">
                         <span id="calcUnitLabel" class="absolute right-8 top-1/2 transform -translate-y-1/2 text-xs text-gray-400 pointer-events-none mr-1"></span>
                     </div>
                     <span id="calcUnitDisplay" class="text-xs text-purple-600 font-bold whitespace-nowrap shrink-0"></span>
                     <span class="text-gray-400 text-xs shrink-0">→</span>
-                    <span id="calcResult" class="text-sm font-bold text-purple-700 whitespace-nowrap shrink-0">-</span>
+                    <span id="calcResult" class="text-xs sm:text-sm font-bold text-purple-700 whitespace-nowrap shrink-0">-</span>
                 </div>
 
                 <!-- 3. 우측: 연도 선택 슬라이더 -->
-                <div id="sliderContainer" class="flex items-center gap-2.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 shrink-0">
-                    <span id="sliderLabel" class="text-sm font-medium text-gray-700 whitespace-nowrap w-16 text-right">최근 10년</span>
-                    <input type="range" id="yearSlider" min="1" max="20" value="10" class="w-28 sm:w-32 h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                <div id="sliderContainer" class="flex items-center gap-2 bg-gray-50 px-2.5 sm:px-3 py-1.5 rounded-lg border border-gray-200 shrink-0 order-2 lg:order-3 ml-auto lg:ml-0">
+                    <span id="sliderLabel" class="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap w-14 sm:w-16 text-right">최근 10년</span>
+                    <input type="range" id="yearSlider" min="1" max="20" value="10" class="w-20 sm:w-28 md:w-32 h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600">
                 </div>
             </div>
 
@@ -282,6 +309,14 @@
         const badgeContainer = document.getElementById('badgeContainer');
         const sourceBadge = document.getElementById('sourceBadge');
 
+        // 거시경제 위젯 요소
+        const macroFxVal = document.getElementById('macroFxVal');
+        const macroFxChg = document.getElementById('macroFxChg');
+        const macroUs2yVal = document.getElementById('macroUs2yVal');
+        const macroUs2yChg = document.getElementById('macroUs2yChg');
+        const macroUs10yVal = document.getElementById('macroUs10yVal');
+        const macroUs10yChg = document.getElementById('macroUs10yChg');
+
         // --- 2. API 설정 ---
         // Finnhub 기본 키 (내장 공식 키)
         const DEFAULT_FINNHUB_KEY = "db671p9r01qmd5li9u0gdb671p9r01qmd5li9u10"; 
@@ -303,6 +338,8 @@
 
         // --- 4. 초기화 및 이벤트 리스너 ---
         window.addEventListener('DOMContentLoaded', async () => {
+            fetchMacroIndicators();
+            setInterval(fetchMacroIndicators, 60000);
             await fetchTickerData();
         });
 
@@ -686,7 +723,125 @@
             return response;
         }
 
+        function renderMacroItem(valEl, chgEl, valText, changeNum, suffix = '%') {
+            if (!valEl || !chgEl) return;
+            valEl.textContent = valText;
+            if (changeNum === null || changeNum === undefined || isNaN(changeNum)) {
+                chgEl.textContent = '';
+                return;
+            }
+            const arrow = changeNum > 0 ? '▲' : changeNum < 0 ? '▼' : '-';
+            const colorClass = changeNum > 0 ? 'text-red-600' : changeNum < 0 ? 'text-blue-600' : 'text-gray-500';
+            chgEl.className = `text-[10px] sm:text-xs font-semibold ${colorClass}`;
+            chgEl.textContent = `${arrow} ${Math.abs(changeNum).toFixed(2)}${suffix}`;
+        }
+
+        async function fetchMacroIndicators() {
+            let fxLoaded = false;
+            let us2yLoaded = false;
+            let us10yLoaded = false;
+
+            // 1순위: CNBC 실시간 글로벌 마켓 피드 (KRW=, US2Y, US10Y 동시 초고속 조회)
+            try {
+                const cnbcUrl = 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=US2Y%7CUS10Y%7CKRW%3D&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1';
+                const res = await fetchWithTimeout(cnbcUrl, { timeout: 4500 });
+                if (res.ok) {
+                    const json = await res.json();
+                    const quotes = json?.FormattedQuoteResult?.FormattedQuote;
+                    if (Array.isArray(quotes)) {
+                        quotes.forEach(q => {
+                            const lastVal = parseFloat(String(q.last || '').replace(/[,%]/g, ''));
+                            const chgVal = parseFloat(String(q.change || '0').replace(/[,%+]/g, ''));
+                            const pctVal = parseFloat(String(q.change_pct || '0').replace(/[,%+]/g, ''));
+                            if (isNaN(lastVal) || lastVal <= 0) return;
+
+                            if (q.symbol === 'KRW=') {
+                                usdToKrwRate = lastVal;
+                                const formattedFx = lastVal.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원';
+                                renderMacroItem(macroFxVal, macroFxChg, formattedFx, pctVal, '%');
+                                fxLoaded = true;
+                            } else if (q.symbol === 'US2Y') {
+                                renderMacroItem(macroUs2yVal, macroUs2yChg, lastVal.toFixed(2) + '%', chgVal, '%p');
+                                us2yLoaded = true;
+                            } else if (q.symbol === 'US10Y') {
+                                renderMacroItem(macroUs10yVal, macroUs10yChg, lastVal.toFixed(2) + '%', chgVal, '%p');
+                                us10yLoaded = true;
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('CNBC realtime macro feed fallback:', e);
+            }
+
+            // 2순위 Fallback: 누락된 항목이 있을 경우 Yahoo Finance 백업 조회
+            if (!fxLoaded) {
+                try {
+                    const fxQuote = await fetchYahooQuote('USDKRW=X');
+                    if (fxQuote && fxQuote.price) {
+                        usdToKrwRate = fxQuote.price;
+                        const formattedFx = fxQuote.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원';
+                        renderMacroItem(macroFxVal, macroFxChg, formattedFx, fxQuote.changePercent, '%');
+                        fxLoaded = true;
+                    }
+                } catch (e) {}
+            }
+
+            if (!us10yLoaded) {
+                try {
+                    const tnQuote = await fetchYahooQuote('^TNX');
+                    if (tnQuote && tnQuote.price) {
+                        const diff = tnQuote.prevClose ? (tnQuote.price - tnQuote.prevClose) : 0;
+                        renderMacroItem(macroUs10yVal, macroUs10yChg, tnQuote.price.toFixed(2) + '%', diff, '%p');
+                        us10yLoaded = true;
+                    }
+                } catch (e) {}
+            }
+
+            if (!us2yLoaded) {
+                try {
+                    const tyQuote = await fetchYahooQuote('2YY=F');
+                    if (tyQuote && tyQuote.price) {
+                        const diff = tyQuote.prevClose ? (tyQuote.price - tyQuote.prevClose) : 0;
+                        renderMacroItem(macroUs2yVal, macroUs2yChg, tyQuote.price.toFixed(2) + '%', diff, '%p');
+                        us2yLoaded = true;
+                    }
+                } catch (e) {}
+            }
+
+            if (fxLoaded && fetchedData) {
+                fetchedData.exchangeSource = '실시간 외환시장';
+                updateExchangeRateInfo(fetchedData.exchangeSource);
+            }
+        }
+
         async function getExchangeRate() {
+            // 1순위: 실시간 외환시장 스팟 환율 (CNBC KRW=)
+            try {
+                const cnbcUrl = 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=KRW%3D&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1';
+                const res = await fetchWithTimeout(cnbcUrl, { timeout: 3500 });
+                if (res.ok) {
+                    const json = await res.json();
+                    const q = json?.FormattedQuoteResult?.FormattedQuote?.[0];
+                    const lastVal = parseFloat(String(q?.last || '').replace(/[,%]/g, ''));
+                    const pctVal = parseFloat(String(q?.change_pct || '0').replace(/[,%+]/g, ''));
+                    if (!isNaN(lastVal) && lastVal > 0) {
+                        const formattedFx = lastVal.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원';
+                        renderMacroItem(macroFxVal, macroFxChg, formattedFx, pctVal, '%');
+                        return { rate: lastVal, source: '실시간 외환시장' };
+                    }
+                }
+            } catch (e) {}
+
+            // 2순위: Yahoo Finance 실시간 환율 (USDKRW=X)
+            try {
+                const fxQuote = await fetchYahooQuote('USDKRW=X');
+                if (fxQuote && fxQuote.price > 0) {
+                    const formattedFx = fxQuote.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원';
+                    renderMacroItem(macroFxVal, macroFxChg, formattedFx, fxQuote.changePercent, '%');
+                    return { rate: fxQuote.price, source: '실시간 외환시장' };
+                }
+            } catch (e) {}
             const keximRate = await getKeximRateRecursive();
             if (keximRate) return { rate: keximRate, source: '한국수출입은행' };
             try {
