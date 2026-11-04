@@ -208,9 +208,9 @@
                         </div>
                     </div>
                     <div class="flex flex-row gap-6 md:gap-12 w-full md:w-auto justify-center md:justify-end text-center md:text-right">
-                        <div>
-                            <p class="text-xs md:text-sm text-gray-500 mb-1 text-center md:text-left">현재 주가</p>
-                            <div class="flex flex-col md:flex-row items-center md:items-baseline justify-center md:justify-start gap-1 md:gap-2">
+                        <div id="stockPriceBox" class="px-2.5 py-1.5 -mx-2.5 -my-1.5 rounded-lg cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400">
+                            <p class="text-xs md:text-sm text-gray-500 mb-1 text-center md:text-left pointer-events-none">현재 주가</p>
+                            <div class="flex flex-col md:flex-row items-center md:items-baseline justify-center md:justify-start gap-1 md:gap-2 pointer-events-none">
                                 <p id="currentPrice" class="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">-</p>
                                 <span id="priceChange" class="text-xs md:text-sm font-bold px-2 py-0.5 rounded bg-gray-100 whitespace-nowrap">-</span>
                             </div>
@@ -387,6 +387,8 @@
         const indexDjiBox = document.getElementById('indexDjiBox');
         const indexIxicBox = document.getElementById('indexIxicBox');
         const indexSpxBox = document.getElementById('indexSpxBox');
+        const stockPriceBox = document.getElementById('stockPriceBox');
+        let currentStockLiveQuote = null;
 
         const macroFxAnimated = document.getElementById('macroFxAnimated');
         const macroFxLabel = document.getElementById('macroFxLabel');
@@ -1117,6 +1119,34 @@
             }
         };
 
+        function getMacroItemMeta(itemKey) {
+            if (MACRO_ITEM_META[itemKey]) return MACRO_ITEM_META[itemKey];
+            if (itemKey && itemKey.startsWith('STOCK_')) {
+                const sym = itemKey.replace('STOCK_', '');
+                return {
+                    isStock: true,
+                    title: currentStockLiveQuote ? `${currentStockLiveQuote.name} (${sym})` : sym,
+                    cnbcSymbol: sym,
+                    yahooSymbol: sym,
+                    multiplier: 1,
+                    formatVal: v => formatPrice(v),
+                    formatDiff: (chg, pct) => {
+                        const arrow = chg > 0 ? '▲' : chg < 0 ? '▼' : '-';
+                        let diffStr = '$' + Math.abs(chg).toFixed(2);
+                        if (currentCurrency === 'krw' && usdToKrwRate) {
+                            diffStr = Math.round(Math.abs(chg) * usdToKrwRate).toLocaleString('ko-KR') + '원';
+                        }
+                        return `${arrow} ${diffStr} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`;
+                    },
+                    getLive: () => currentStockLiveQuote ? {
+                        ...currentStockLiveQuote,
+                        valText: formatPrice(currentStockLiveQuote.rawVal)
+                    } : null
+                };
+            }
+            return null;
+        }
+
         const PERIOD_CONFIG = {
             '1w': { days: 10, badge: '최근 1주일 추세', yahooRange: '5d' },
             '1m': { days: 34, badge: '최근 1개월 추세', yahooRange: '1mo' },
@@ -1142,7 +1172,7 @@
             const cacheKey = `${itemKey}_${period}`;
             if (macroHistoryCache[cacheKey]) return macroHistoryCache[cacheKey];
 
-            const meta = MACRO_ITEM_META[itemKey];
+            const meta = getMacroItemMeta(itemKey);
             if (!meta) return null;
             const pCfg = PERIOD_CONFIG[period] || PERIOD_CONFIG['1m'];
 
@@ -1238,11 +1268,14 @@
             if (boxEl === indexDjiBox) return 'DJI';
             if (boxEl === indexIxicBox) return 'IXIC';
             if (boxEl === indexSpxBox) return 'SPX';
+            if (boxEl === stockPriceBox && currentStockLiveQuote && currentStockLiveQuote.ticker) {
+                return `STOCK_${currentStockLiveQuote.ticker}`;
+            }
             return 'USDKRW';
         }
 
         function highlightActiveBox(boxEl) {
-            [macroFxBox, macroBondShortBox, macroBond10yBox, indexDjiBox, indexIxicBox, indexSpxBox].forEach(el => {
+            [macroFxBox, macroBondShortBox, macroBond10yBox, indexDjiBox, indexIxicBox, indexSpxBox, stockPriceBox].forEach(el => {
                 if (!el) return;
                 if (el === boxEl) {
                     el.classList.add('bg-blue-50', 'ring-2', 'ring-blue-500');
@@ -1363,7 +1396,7 @@
             activePopupItemKey = itemKey;
             if (periodOverride) activePopupPeriod = periodOverride;
 
-            const meta = MACRO_ITEM_META[itemKey];
+            const meta = getMacroItemMeta(itemKey);
             if (!meta) return;
 
             highlightActiveBox(boxEl);
@@ -1440,7 +1473,7 @@
         }
 
         function initMacroPopoverEvents() {
-            const boxes = [macroFxBox, macroBondShortBox, macroBond10yBox, indexDjiBox, indexIxicBox, indexSpxBox];
+            const boxes = [macroFxBox, macroBondShortBox, macroBond10yBox, indexDjiBox, indexIxicBox, indexSpxBox, stockPriceBox];
             boxes.forEach(box => {
                 if (!box) return;
                 box.addEventListener('mouseenter', () => {
@@ -2168,6 +2201,20 @@
 
             currentPrice.textContent = formatPrice(price);
             marketCap.textContent = formatNumber(mktCap);
+
+            if (price && !isNaN(price)) {
+                const priceDiff = (prevClose && !isNaN(prevClose)) ? (price - prevClose) : 0;
+                currentStockLiveQuote = {
+                    ticker: ticker.toUpperCase(),
+                    name: finnhubProfile?.name || defaultName,
+                    rawVal: price,
+                    prevClose: prevClose || price,
+                    chgVal: priceDiff,
+                    pctVal: changePercent,
+                    changeNum: changePercent
+                };
+                fetchMacroHistory(`STOCK_${ticker.toUpperCase()}`, '1m').catch(() => null);
+            }
 
             // --- 재무 비율 계산 ---
             let capStr = '-';
