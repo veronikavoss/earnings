@@ -95,11 +95,13 @@
         <!-- 실시간 거시경제 지표 위젯 (검색창 하단 상시 고정) -->
         <div id="macroWidget" class="w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1.5 py-2 sm:px-4 sm:py-2.5 mb-2 sm:mb-2.5 shadow-sm">
             <div class="grid grid-cols-3 divide-x divide-gray-200 items-center">
-                <div class="flex flex-col items-center justify-center px-1 sm:px-3">
-                    <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">실시간 환율<span class="hidden sm:inline"> (USD/KRW)</span></span>
-                    <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
-                        <span id="macroFxVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
-                        <span id="macroFxChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                <div class="flex flex-col items-center justify-center px-1 sm:px-3 overflow-hidden">
+                    <div id="macroFxAnimated" class="flex flex-col items-center justify-center transition-all duration-300">
+                        <span id="macroFxLabel" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">실시간 환율 (USD/KRW)</span>
+                        <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                            <span id="macroFxVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                            <span id="macroFxChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                        </div>
                     </div>
                 </div>
                 <div class="flex flex-col items-center justify-center px-1 sm:px-3">
@@ -336,8 +338,14 @@
         const sourceBadge = document.getElementById('sourceBadge');
 
         // 거시경제 위젯 요소
+        const macroFxAnimated = document.getElementById('macroFxAnimated');
+        const macroFxLabel = document.getElementById('macroFxLabel');
         const macroFxVal = document.getElementById('macroFxVal');
         const macroFxChg = document.getElementById('macroFxChg');
+        const fxDataMap = {};
+        const fxRotationKeys = ['USDKRW', 'DXY', 'JPYKRW', 'USDJPY', 'EURUSD'];
+        let currentFxIndex = 0;
+        let fxAnimationTimer = null;
         const macroUs2yVal = document.getElementById('macroUs2yVal');
         const macroUs2yChg = document.getElementById('macroUs2yChg');
         const macroUs10yVal = document.getElementById('macroUs10yVal');
@@ -372,6 +380,9 @@
         window.addEventListener('DOMContentLoaded', async () => {
             fetchMacroIndicators();
             setInterval(fetchMacroIndicators, 60000);
+            if (!fxAnimationTimer) {
+                fxAnimationTimer = setInterval(rotateFxDisplay, 3500);
+            }
             await fetchTickerData();
         });
 
@@ -768,6 +779,42 @@
             chgEl.textContent = `${arrow} ${Math.abs(changeNum).toFixed(2)}${suffix}`;
         }
 
+        function updateCurrentFxDisplay(immediate = false) {
+            const availableKeys = fxRotationKeys.filter(k => fxDataMap[k]);
+            if (availableKeys.length === 0) return;
+            const key = availableKeys[currentFxIndex % availableKeys.length];
+            const data = fxDataMap[key];
+            if (!data) return;
+
+            if (immediate || !macroFxAnimated) {
+                if (macroFxLabel) macroFxLabel.textContent = data.label;
+                renderMacroItem(macroFxVal, macroFxChg, data.valText, data.changeNum, data.suffix);
+                return;
+            }
+
+            macroFxAnimated.style.transition = 'opacity 0.22s ease-out, transform 0.22s ease-out';
+            macroFxAnimated.style.opacity = '0';
+            macroFxAnimated.style.transform = 'translateY(-6px)';
+
+            setTimeout(() => {
+                if (macroFxLabel) macroFxLabel.textContent = data.label;
+                renderMacroItem(macroFxVal, macroFxChg, data.valText, data.changeNum, data.suffix);
+                macroFxAnimated.style.transition = 'none';
+                macroFxAnimated.style.transform = 'translateY(6px)';
+                void macroFxAnimated.offsetHeight;
+                macroFxAnimated.style.transition = 'opacity 0.25s ease-in, transform 0.25s ease-in';
+                macroFxAnimated.style.opacity = '1';
+                macroFxAnimated.style.transform = 'translateY(0)';
+            }, 220);
+        }
+
+        function rotateFxDisplay() {
+            const availableKeys = fxRotationKeys.filter(k => fxDataMap[k]);
+            if (availableKeys.length <= 1) return;
+            currentFxIndex = (currentFxIndex + 1) % availableKeys.length;
+            updateCurrentFxDisplay(false);
+        }
+
         async function fetchMacroIndicators() {
             let fxLoaded = false;
             let us2yLoaded = false;
@@ -776,9 +823,9 @@
             let ixicLoaded = false;
             let spxLoaded = false;
 
-            // 1순위: CNBC 실시간 글로벌 마켓 피드 (US2Y, US10Y, KRW=, .DJI, .IXIC, .SPX 동시 초고속 조회)
+            // 1순위: CNBC 실시간 글로벌 마켓 피드 (환율 5종, 국채 2종, 3대 지수 3종 동시 초고속 조회)
             try {
-                const cnbcUrl = 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=US2Y%7CUS10Y%7CKRW%3D%7C.DJI%7C.IXIC%7C.SPX&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1';
+                const cnbcUrl = 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=US2Y%7CUS10Y%7CKRW%3D%7C.DXY%7CJPYKRW%3D%7CJPY%3D%7CEUR%3D%7C.DJI%7C.IXIC%7C.SPX&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1';
                 const res = await fetchWithTimeout(cnbcUrl, { timeout: 4500 });
                 if (res.ok) {
                     const json = await res.json();
@@ -792,9 +839,42 @@
 
                             if (q.symbol === 'KRW=') {
                                 usdToKrwRate = lastVal;
-                                const formattedFx = lastVal.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원';
-                                renderMacroItem(macroFxVal, macroFxChg, formattedFx, pctVal, '%');
+                                fxDataMap['USDKRW'] = {
+                                    label: '실시간 환율 (USD/KRW)',
+                                    valText: lastVal.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
+                                    changeNum: pctVal,
+                                    suffix: '%'
+                                };
                                 fxLoaded = true;
+                            } else if (q.symbol === '.DXY') {
+                                fxDataMap['DXY'] = {
+                                    label: '달러 인덱스 (DXY)',
+                                    valText: lastVal.toFixed(2),
+                                    changeNum: pctVal,
+                                    suffix: '%'
+                                };
+                            } else if (q.symbol === 'JPYKRW=') {
+                                const jpy100 = lastVal * 100;
+                                fxDataMap['JPYKRW'] = {
+                                    label: '엔/원 (100엔)',
+                                    valText: jpy100.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
+                                    changeNum: pctVal,
+                                    suffix: '%'
+                                };
+                            } else if (q.symbol === 'JPY=') {
+                                fxDataMap['USDJPY'] = {
+                                    label: '엔/달러 (USD/JPY)',
+                                    valText: lastVal.toFixed(2) + '엔',
+                                    changeNum: pctVal,
+                                    suffix: '%'
+                                };
+                            } else if (q.symbol === 'EUR=') {
+                                fxDataMap['EURUSD'] = {
+                                    label: '유로/달러 (EUR/USD)',
+                                    valText: lastVal.toFixed(4) + '$',
+                                    changeNum: pctVal,
+                                    suffix: '%'
+                                };
                             } else if (q.symbol === 'US2Y') {
                                 renderMacroItem(macroUs2yVal, macroUs2yChg, lastVal.toFixed(2) + '%', chgVal, '%p');
                                 us2yLoaded = true;
@@ -821,18 +901,81 @@
                 console.warn('CNBC realtime macro feed fallback:', e);
             }
 
-            // 2순위 Fallback: 누락된 항목이 있을 경우 Yahoo Finance 백업 조회
-            if (!fxLoaded) {
+            // 2순위 Fallback: 누락된 환율 항목이 있을 경우 Yahoo Finance 백업 조회
+            if (!fxDataMap['USDKRW']) {
                 try {
                     const fxQuote = await fetchYahooQuote('USDKRW=X');
                     if (fxQuote && fxQuote.price) {
                         usdToKrwRate = fxQuote.price;
-                        const formattedFx = fxQuote.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원';
-                        renderMacroItem(macroFxVal, macroFxChg, formattedFx, fxQuote.changePercent, '%');
+                        fxDataMap['USDKRW'] = {
+                            label: '실시간 환율 (USD/KRW)',
+                            valText: fxQuote.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
+                            changeNum: fxQuote.changePercent,
+                            suffix: '%'
+                        };
                         fxLoaded = true;
                     }
                 } catch (e) {}
             }
+
+            if (!fxDataMap['DXY']) {
+                try {
+                    const dxyQuote = await fetchYahooQuote('DX-Y.NYB');
+                    if (dxyQuote && dxyQuote.price) {
+                        fxDataMap['DXY'] = {
+                            label: '달러 인덱스 (DXY)',
+                            valText: dxyQuote.price.toFixed(2),
+                            changeNum: dxyQuote.changePercent,
+                            suffix: '%'
+                        };
+                    }
+                } catch (e) {}
+            }
+
+            if (!fxDataMap['JPYKRW']) {
+                try {
+                    const jpyKrwQuote = await fetchYahooQuote('JPYKRW=X');
+                    if (jpyKrwQuote && jpyKrwQuote.price) {
+                        fxDataMap['JPYKRW'] = {
+                            label: '엔/원 (100엔)',
+                            valText: (jpyKrwQuote.price * 100).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
+                            changeNum: jpyKrwQuote.changePercent,
+                            suffix: '%'
+                        };
+                    }
+                } catch (e) {}
+            }
+
+            if (!fxDataMap['USDJPY']) {
+                try {
+                    const jpyQuote = await fetchYahooQuote('JPY=X');
+                    if (jpyQuote && jpyQuote.price) {
+                        fxDataMap['USDJPY'] = {
+                            label: '엔/달러 (USD/JPY)',
+                            valText: jpyQuote.price.toFixed(2) + '엔',
+                            changeNum: jpyQuote.changePercent,
+                            suffix: '%'
+                        };
+                    }
+                } catch (e) {}
+            }
+
+            if (!fxDataMap['EURUSD']) {
+                try {
+                    const eurQuote = await fetchYahooQuote('EURUSD=X');
+                    if (eurQuote && eurQuote.price) {
+                        fxDataMap['EURUSD'] = {
+                            label: '유로/달러 (EUR/USD)',
+                            valText: eurQuote.price.toFixed(4) + '$',
+                            changeNum: eurQuote.changePercent,
+                            suffix: '%'
+                        };
+                    }
+                } catch (e) {}
+            }
+
+            // 환율 현재 슬롯 표시 즉시 갱신
+            updateCurrentFxDisplay(true);
 
             if (!us10yLoaded) {
                 try {
