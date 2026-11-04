@@ -104,18 +104,22 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex flex-col items-center justify-center px-1 sm:px-3">
-                    <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 2년</span>
-                    <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
-                        <span id="macroUs2yVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
-                        <span id="macroUs2yChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                <div class="flex flex-col items-center justify-center px-1 sm:px-3 overflow-hidden">
+                    <div id="macroBondShortAnimated" class="flex flex-col items-center justify-center transition-all duration-300">
+                        <span id="macroBondShortLabel" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 2년</span>
+                        <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                            <span id="macroUs2yVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                            <span id="macroUs2yChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                        </div>
                     </div>
                 </div>
-                <div class="flex flex-col items-center justify-center px-1 sm:px-3">
-                    <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 10년</span>
-                    <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
-                        <span id="macroUs10yVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
-                        <span id="macroUs10yChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                <div class="flex flex-col items-center justify-center px-1 sm:px-3 overflow-hidden">
+                    <div id="macroBond10yAnimated" class="flex flex-col items-center justify-center transition-all duration-300">
+                        <span id="macroBond10yLabel" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 10년</span>
+                        <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                            <span id="macroUs10yVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                            <span id="macroUs10yChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -346,10 +350,22 @@
         const fxRotationKeys = ['USDKRW', 'DXY', 'JPYKRW', 'USDJPY', 'EURUSD'];
         let currentFxIndex = 0;
         let fxAnimationTimer = null;
+        const macroBondShortAnimated = document.getElementById('macroBondShortAnimated');
+        const macroBondShortLabel = document.getElementById('macroBondShortLabel');
+        const macroBond10yAnimated = document.getElementById('macroBond10yAnimated');
+        const macroBond10yLabel = document.getElementById('macroBond10yLabel');
         const macroUs2yVal = document.getElementById('macroUs2yVal');
         const macroUs2yChg = document.getElementById('macroUs2yChg');
         const macroUs10yVal = document.getElementById('macroUs10yVal');
         const macroUs10yChg = document.getElementById('macroUs10yChg');
+        const bondDataMap = {
+            US: { short: { label: '미국 국채 2년', valText: '-', changeNum: null }, long: { label: '미국 국채 10년', valText: '-', changeNum: null } },
+            KR: { short: { label: '한국 국채 3년', valText: '-', changeNum: null }, long: { label: '한국 국채 10년', valText: '-', changeNum: null } },
+            JP: { short: { label: '일본 국채 2년', valText: '-', changeNum: null }, long: { label: '일본 국채 10년', valText: '-', changeNum: null } }
+        };
+        const bondRotationKeys = ['US', 'KR', 'JP'];
+        let currentBondIndex = 0;
+        let bondAnimationTimer = null;
         const indexDjiVal = document.getElementById('indexDjiVal');
         const indexDjiChg = document.getElementById('indexDjiChg');
         const indexIxicVal = document.getElementById('indexIxicVal');
@@ -382,6 +398,9 @@
             setInterval(fetchMacroIndicators, 60000);
             if (!fxAnimationTimer) {
                 fxAnimationTimer = setInterval(rotateFxDisplay, 3500);
+            }
+            if (!bondAnimationTimer) {
+                bondAnimationTimer = setInterval(rotateBondDisplay, 3500);
             }
             await fetchTickerData();
         });
@@ -815,6 +834,49 @@
             updateCurrentFxDisplay(false);
         }
 
+        function updateCurrentBondDisplay(immediate = false) {
+            const key = bondRotationKeys[currentBondIndex % bondRotationKeys.length];
+            const data = bondDataMap[key];
+            if (!data) return;
+
+            if (immediate || !macroBondShortAnimated || !macroBond10yAnimated) {
+                if (macroBondShortLabel) macroBondShortLabel.textContent = data.short.label;
+                renderMacroItem(macroUs2yVal, macroUs2yChg, data.short.valText, data.short.changeNum, '%p');
+                if (macroBond10yLabel) macroBond10yLabel.textContent = data.long.label;
+                renderMacroItem(macroUs10yVal, macroUs10yChg, data.long.valText, data.long.changeNum, '%p');
+                return;
+            }
+
+            [macroBondShortAnimated, macroBond10yAnimated].forEach(el => {
+                if (!el) return;
+                el.style.transition = 'opacity 0.22s ease-out, transform 0.22s ease-out';
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-6px)';
+            });
+
+            setTimeout(() => {
+                if (macroBondShortLabel) macroBondShortLabel.textContent = data.short.label;
+                renderMacroItem(macroUs2yVal, macroUs2yChg, data.short.valText, data.short.changeNum, '%p');
+                if (macroBond10yLabel) macroBond10yLabel.textContent = data.long.label;
+                renderMacroItem(macroUs10yVal, macroUs10yChg, data.long.valText, data.long.changeNum, '%p');
+
+                [macroBondShortAnimated, macroBond10yAnimated].forEach(el => {
+                    if (!el) return;
+                    el.style.transition = 'none';
+                    el.style.transform = 'translateY(6px)';
+                    void el.offsetHeight;
+                    el.style.transition = 'opacity 0.25s ease-in, transform 0.25s ease-in';
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                });
+            }, 220);
+        }
+
+        function rotateBondDisplay() {
+            currentBondIndex = (currentBondIndex + 1) % bondRotationKeys.length;
+            updateCurrentBondDisplay(false);
+        }
+
         async function fetchMacroIndicators() {
             let fxLoaded = false;
             let us2yLoaded = false;
@@ -823,9 +885,9 @@
             let ixicLoaded = false;
             let spxLoaded = false;
 
-            // 1순위: CNBC 실시간 글로벌 마켓 피드 (환율 5종, 국채 2종, 3대 지수 3종 동시 초고속 조회)
+            // 1순위: CNBC 실시간 글로벌 마켓 피드 (환율 5종, 국채 6종 [미국/한국/일본], 3대 지수 3종 동시 초고속 조회)
             try {
-                const cnbcUrl = 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=US2Y%7CUS10Y%7CKRW%3D%7C.DXY%7CJPYKRW%3D%7CJPY%3D%7CEUR%3D%7C.DJI%7C.IXIC%7C.SPX&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1';
+                const cnbcUrl = 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=US2Y%7CUS10Y%7CKRW%3D%7C.DXY%7CJPYKRW%3D%7CJPY%3D%7CEUR%3D%7CJP2Y%7CJP10Y%7CKR3YT%3DRR%7CKR10Y%7C.DJI%7C.IXIC%7C.SPX&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1';
                 const res = await fetchWithTimeout(cnbcUrl, { timeout: 4500 });
                 if (res.ok) {
                     const json = await res.json();
@@ -876,11 +938,25 @@
                                     suffix: '%'
                                 };
                             } else if (q.symbol === 'US2Y') {
-                                renderMacroItem(macroUs2yVal, macroUs2yChg, lastVal.toFixed(2) + '%', chgVal, '%p');
+                                bondDataMap.US.short.valText = lastVal.toFixed(2) + '%';
+                                bondDataMap.US.short.changeNum = chgVal;
                                 us2yLoaded = true;
                             } else if (q.symbol === 'US10Y') {
-                                renderMacroItem(macroUs10yVal, macroUs10yChg, lastVal.toFixed(2) + '%', chgVal, '%p');
+                                bondDataMap.US.long.valText = lastVal.toFixed(2) + '%';
+                                bondDataMap.US.long.changeNum = chgVal;
                                 us10yLoaded = true;
+                            } else if (q.symbol === 'KR3YT=RR') {
+                                bondDataMap.KR.short.valText = lastVal.toFixed(2) + '%';
+                                bondDataMap.KR.short.changeNum = chgVal;
+                            } else if (q.symbol === 'KR10Y') {
+                                bondDataMap.KR.long.valText = lastVal.toFixed(2) + '%';
+                                bondDataMap.KR.long.changeNum = chgVal;
+                            } else if (q.symbol === 'JP2Y') {
+                                bondDataMap.JP.short.valText = lastVal.toFixed(2) + '%';
+                                bondDataMap.JP.short.changeNum = chgVal;
+                            } else if (q.symbol === 'JP10Y') {
+                                bondDataMap.JP.long.valText = lastVal.toFixed(2) + '%';
+                                bondDataMap.JP.long.changeNum = chgVal;
                             } else if (q.symbol === '.DJI') {
                                 const formatted = lastVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                 renderMacroItem(indexDjiVal, indexDjiChg, formatted, pctVal, '%');
@@ -977,12 +1053,14 @@
             // 환율 현재 슬롯 표시 즉시 갱신
             updateCurrentFxDisplay(true);
 
+            // 국채 fallback
             if (!us10yLoaded) {
                 try {
                     const tnQuote = await fetchYahooQuote('^TNX');
                     if (tnQuote && tnQuote.price) {
                         const diff = tnQuote.prevClose ? (tnQuote.price - tnQuote.prevClose) : 0;
-                        renderMacroItem(macroUs10yVal, macroUs10yChg, tnQuote.price.toFixed(2) + '%', diff, '%p');
+                        bondDataMap.US.long.valText = tnQuote.price.toFixed(2) + '%';
+                        bondDataMap.US.long.changeNum = diff;
                         us10yLoaded = true;
                     }
                 } catch (e) {}
@@ -993,11 +1071,15 @@
                     const tyQuote = await fetchYahooQuote('2YY=F');
                     if (tyQuote && tyQuote.price) {
                         const diff = tyQuote.prevClose ? (tyQuote.price - tyQuote.prevClose) : 0;
-                        renderMacroItem(macroUs2yVal, macroUs2yChg, tyQuote.price.toFixed(2) + '%', diff, '%p');
+                        bondDataMap.US.short.valText = tyQuote.price.toFixed(2) + '%';
+                        bondDataMap.US.short.changeNum = diff;
                         us2yLoaded = true;
                     }
                 } catch (e) {}
             }
+
+            // 국채 현재 슬롯 표시 즉시 갱신
+            updateCurrentBondDisplay(true);
 
             if (!djiLoaded) {
                 try {
