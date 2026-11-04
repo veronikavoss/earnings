@@ -93,7 +93,7 @@
         </div>
 
         <!-- 실시간 거시경제 지표 위젯 (검색창 하단 상시 고정) -->
-        <div id="macroWidget" class="w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1.5 py-2 sm:px-4 sm:py-2.5 mb-6 md:mb-8 shadow-sm">
+        <div id="macroWidget" class="w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1.5 py-2 sm:px-4 sm:py-2.5 mb-2 sm:mb-2.5 shadow-sm">
             <div class="grid grid-cols-3 divide-x divide-gray-200 items-center">
                 <div class="flex flex-col items-center justify-center px-1 sm:px-3">
                     <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">실시간 환율<span class="hidden sm:inline"> (USD/KRW)</span></span>
@@ -114,6 +114,32 @@
                     <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
                         <span id="macroUs10yVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
                         <span id="macroUs10yChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 실시간 미국 3대 주요 지수 위젯 (다우존스, 나스닥, S&P 500) -->
+        <div id="indexWidget" class="w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1.5 py-2 sm:px-4 sm:py-2.5 mb-6 md:mb-8 shadow-sm">
+            <div class="grid grid-cols-3 divide-x divide-gray-200 items-center">
+                <div class="flex flex-col items-center justify-center px-1 sm:px-3">
+                    <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">다우존스</span>
+                    <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                        <span id="indexDjiVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                        <span id="indexDjiChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center justify-center px-1 sm:px-3">
+                    <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">나스닥</span>
+                    <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                        <span id="indexIxicVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                        <span id="indexIxicChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center justify-center px-1 sm:px-3">
+                    <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">S&P 500</span>
+                    <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                        <span id="indexSpxVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                        <span id="indexSpxChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
                     </div>
                 </div>
             </div>
@@ -316,6 +342,12 @@
         const macroUs2yChg = document.getElementById('macroUs2yChg');
         const macroUs10yVal = document.getElementById('macroUs10yVal');
         const macroUs10yChg = document.getElementById('macroUs10yChg');
+        const indexDjiVal = document.getElementById('indexDjiVal');
+        const indexDjiChg = document.getElementById('indexDjiChg');
+        const indexIxicVal = document.getElementById('indexIxicVal');
+        const indexIxicChg = document.getElementById('indexIxicChg');
+        const indexSpxVal = document.getElementById('indexSpxVal');
+        const indexSpxChg = document.getElementById('indexSpxChg');
 
         // --- 2. API 설정 ---
         // Finnhub 기본 키 (내장 공식 키)
@@ -740,10 +772,13 @@
             let fxLoaded = false;
             let us2yLoaded = false;
             let us10yLoaded = false;
+            let djiLoaded = false;
+            let ixicLoaded = false;
+            let spxLoaded = false;
 
-            // 1순위: CNBC 실시간 글로벌 마켓 피드 (KRW=, US2Y, US10Y 동시 초고속 조회)
+            // 1순위: CNBC 실시간 글로벌 마켓 피드 (US2Y, US10Y, KRW=, .DJI, .IXIC, .SPX 동시 초고속 조회)
             try {
-                const cnbcUrl = 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=US2Y%7CUS10Y%7CKRW%3D&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1';
+                const cnbcUrl = 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=US2Y%7CUS10Y%7CKRW%3D%7C.DJI%7C.IXIC%7C.SPX&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1';
                 const res = await fetchWithTimeout(cnbcUrl, { timeout: 4500 });
                 if (res.ok) {
                     const json = await res.json();
@@ -766,6 +801,18 @@
                             } else if (q.symbol === 'US10Y') {
                                 renderMacroItem(macroUs10yVal, macroUs10yChg, lastVal.toFixed(2) + '%', chgVal, '%p');
                                 us10yLoaded = true;
+                            } else if (q.symbol === '.DJI') {
+                                const formatted = lastVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                renderMacroItem(indexDjiVal, indexDjiChg, formatted, pctVal, '%');
+                                djiLoaded = true;
+                            } else if (q.symbol === '.IXIC') {
+                                const formatted = lastVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                renderMacroItem(indexIxicVal, indexIxicChg, formatted, pctVal, '%');
+                                ixicLoaded = true;
+                            } else if (q.symbol === '.SPX') {
+                                const formatted = lastVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                renderMacroItem(indexSpxVal, indexSpxChg, formatted, pctVal, '%');
+                                spxLoaded = true;
                             }
                         });
                     }
@@ -805,6 +852,39 @@
                         const diff = tyQuote.prevClose ? (tyQuote.price - tyQuote.prevClose) : 0;
                         renderMacroItem(macroUs2yVal, macroUs2yChg, tyQuote.price.toFixed(2) + '%', diff, '%p');
                         us2yLoaded = true;
+                    }
+                } catch (e) {}
+            }
+
+            if (!djiLoaded) {
+                try {
+                    const djiQuote = await fetchYahooQuote('^DJI');
+                    if (djiQuote && djiQuote.price) {
+                        const formatted = djiQuote.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        renderMacroItem(indexDjiVal, indexDjiChg, formatted, djiQuote.changePercent, '%');
+                        djiLoaded = true;
+                    }
+                } catch (e) {}
+            }
+
+            if (!ixicLoaded) {
+                try {
+                    const ixicQuote = await fetchYahooQuote('^IXIC');
+                    if (ixicQuote && ixicQuote.price) {
+                        const formatted = ixicQuote.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        renderMacroItem(indexIxicVal, indexIxicChg, formatted, ixicQuote.changePercent, '%');
+                        ixicLoaded = true;
+                    }
+                } catch (e) {}
+            }
+
+            if (!spxLoaded) {
+                try {
+                    const spxQuote = await fetchYahooQuote('^GSPC');
+                    if (spxQuote && spxQuote.price) {
+                        const formatted = spxQuote.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        renderMacroItem(indexSpxVal, indexSpxChg, formatted, spxQuote.changePercent, '%');
+                        spxLoaded = true;
                     }
                 } catch (e) {}
             }
