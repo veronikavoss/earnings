@@ -92,60 +92,98 @@
             </button>
         </div>
 
-        <!-- 실시간 거시경제 지표 위젯 (검색창 하단 상시 고정) -->
-        <div id="macroWidget" class="w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1.5 py-2 sm:px-4 sm:py-2.5 mb-2 sm:mb-2.5 shadow-sm">
-            <div class="grid grid-cols-3 divide-x divide-gray-200 items-center">
-                <div class="flex flex-col items-center justify-center px-1 sm:px-3 overflow-hidden">
-                    <div id="macroFxAnimated" class="flex flex-col items-center justify-center transition-all duration-300">
-                        <span id="macroFxLabel" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">실시간 환율 (USD/KRW)</span>
-                        <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
-                            <span id="macroFxVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
-                            <span id="macroFxChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+        <!-- 실시간 거시경제 지표 & 3대 지수 통합 래퍼 (마우스 호버 미니차트 팝업 포함) -->
+        <div id="macroSectionWrapper" class="relative mb-6 md:mb-8">
+            <!-- 실시간 거시경제 지표 위젯 (검색창 하단 상시 고정) -->
+            <div id="macroWidget" class="w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1.5 py-1.5 sm:px-3 sm:py-2 mb-2 sm:mb-2.5 shadow-sm">
+                <div class="grid grid-cols-3 divide-x divide-gray-200 items-center">
+                    <div id="macroFxBox" class="flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
+                        <div id="macroFxAnimated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
+                            <span id="macroFxLabel" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">실시간 환율 (USD/KRW)</span>
+                            <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                                <span id="macroFxVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                                <span id="macroFxChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="flex flex-col items-center justify-center px-1 sm:px-3 overflow-hidden">
-                    <div id="macroBondShortAnimated" class="flex flex-col items-center justify-center transition-all duration-300">
-                        <span id="macroBondShortLabel" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 2년</span>
-                        <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
-                            <span id="macroUs2yVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
-                            <span id="macroUs2yChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                    <div id="macroBondShortBox" class="flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
+                        <div id="macroBondShortAnimated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
+                            <span id="macroBondShortLabel" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 2년</span>
+                            <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                                <span id="macroUs2yVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                                <span id="macroUs2yChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="flex flex-col items-center justify-center px-1 sm:px-3 overflow-hidden">
-                    <div id="macroBond10yAnimated" class="flex flex-col items-center justify-center transition-all duration-300">
-                        <span id="macroBond10yLabel" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 10년</span>
-                        <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
-                            <span id="macroUs10yVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
-                            <span id="macroUs10yChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                    <div id="macroBond10yBox" class="flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
+                        <div id="macroBond10yAnimated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
+                            <span id="macroBond10yLabel" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 10년</span>
+                            <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                                <span id="macroUs10yVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                                <span id="macroUs10yChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <!-- 실시간 미국 3대 주요 지수 위젯 (다우존스, 나스닥, S&P 500) -->
-        <div id="indexWidget" class="w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1.5 py-2 sm:px-4 sm:py-2.5 mb-6 md:mb-8 shadow-sm">
-            <div class="grid grid-cols-3 divide-x divide-gray-200 items-center">
-                <div class="flex flex-col items-center justify-center px-1 sm:px-3">
-                    <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">다우존스</span>
-                    <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
-                        <span id="indexDjiVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
-                        <span id="indexDjiChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+
+            <!-- 실시간 미국 3대 주요 지수 위젯 (다우존스, 나스닥, S&P 500) -->
+            <div id="indexWidget" class="w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1.5 py-1.5 sm:px-3 sm:py-2 shadow-sm">
+                <div class="grid grid-cols-3 divide-x divide-gray-200 items-center">
+                    <div id="indexDjiBox" class="flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400">
+                        <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap pointer-events-none">다우존스</span>
+                        <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap pointer-events-none">
+                            <span id="indexDjiVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                            <span id="indexDjiChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                        </div>
+                    </div>
+                    <div id="indexIxicBox" class="flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400">
+                        <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap pointer-events-none">나스닥</span>
+                        <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap pointer-events-none">
+                            <span id="indexIxicVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                            <span id="indexIxicChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                        </div>
+                    </div>
+                    <div id="indexSpxBox" class="flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400">
+                        <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap pointer-events-none">S&P 500</span>
+                        <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap pointer-events-none">
+                            <span id="indexSpxVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                            <span id="indexSpxChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                        </div>
                     </div>
                 </div>
-                <div class="flex flex-col items-center justify-center px-1 sm:px-3">
-                    <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">나스닥</span>
-                    <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
-                        <span id="indexIxicVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
-                        <span id="indexIxicChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
-                    </div>
+            </div>
+
+            <!-- 마우스 호버 / 클릭 미니 추세 차트 팝업 (Popover) -->
+            <div id="macroPopover" class="hidden absolute z-50 w-[310px] sm:w-[350px] bg-white border border-slate-300 rounded-xl shadow-2xl p-4 transition-opacity duration-150">
+                <!-- 상단 화살표 포인터 -->
+                <div id="macroPopoverArrow" class="w-3.5 h-3.5 bg-white border-l border-t border-slate-300 transform rotate-45 absolute -top-2 left-20"></div>
+                <!-- 1행: 타이틀 & 기간 배지 -->
+                <div class="flex items-center justify-between gap-2 mb-1.5">
+                    <span id="popTitle" class="text-xs sm:text-sm font-bold text-slate-900 truncate">-</span>
+                    <span id="popBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">최근 1개월 추세</span>
                 </div>
-                <div class="flex flex-col items-center justify-center px-1 sm:px-3">
-                    <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">S&P 500</span>
-                    <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
-                        <span id="indexSpxVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
-                        <span id="indexSpxChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                <!-- 2행: 현재 수치 & 등락 배지 -->
+                <div class="flex items-baseline gap-2 mb-2">
+                    <span id="popValue" class="text-lg sm:text-xl font-extrabold text-slate-900 font-mono tracking-tight">-</span>
+                    <span id="popChange" class="text-[11px] font-bold px-2 py-0.5 rounded border">-</span>
+                </div>
+                <!-- 3행: 미니 추세 그래프 영역 -->
+                <div class="relative h-24 w-full">
+                    <canvas id="macroPopupChart"></canvas>
+                </div>
+                <div class="flex justify-between items-center text-[10px] text-slate-400 mt-1 pb-2 border-b border-slate-100">
+                    <span id="popStartDate">-</span>
+                    <span id="popEndDate">-</span>
+                </div>
+                <!-- 4행: 기간 내 최저/최고 & 기간 선택 탭 -->
+                <div class="flex items-center justify-between gap-1 pt-2">
+                    <span id="popMinMax" class="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">최저 - · 최고 -</span>
+                    <div class="flex items-center gap-1 shrink-0" id="popPeriodTabs">
+                        <button type="button" data-period="1w" class="pop-period-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">1주</button>
+                        <button type="button" data-period="1m" class="pop-period-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-600 text-white transition-colors">1개월</button>
+                        <button type="button" data-period="3m" class="pop-period-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">3개월</button>
+                        <button type="button" data-period="1y" class="pop-period-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">1년</button>
                     </div>
                 </div>
             </div>
@@ -342,6 +380,14 @@
         const sourceBadge = document.getElementById('sourceBadge');
 
         // 거시경제 위젯 요소
+        const macroSectionWrapper = document.getElementById('macroSectionWrapper');
+        const macroFxBox = document.getElementById('macroFxBox');
+        const macroBondShortBox = document.getElementById('macroBondShortBox');
+        const macroBond10yBox = document.getElementById('macroBond10yBox');
+        const indexDjiBox = document.getElementById('indexDjiBox');
+        const indexIxicBox = document.getElementById('indexIxicBox');
+        const indexSpxBox = document.getElementById('indexSpxBox');
+
         const macroFxAnimated = document.getElementById('macroFxAnimated');
         const macroFxLabel = document.getElementById('macroFxLabel');
         const macroFxVal = document.getElementById('macroFxVal');
@@ -350,6 +396,7 @@
         const fxRotationKeys = ['USDKRW', 'DXY', 'JPYKRW', 'EURKRW', 'USDJPY', 'EURUSD'];
         let currentFxIndex = 0;
         let fxAnimationTimer = null;
+
         const macroBondShortAnimated = document.getElementById('macroBondShortAnimated');
         const macroBondShortLabel = document.getElementById('macroBondShortLabel');
         const macroBond10yAnimated = document.getElementById('macroBond10yAnimated');
@@ -359,19 +406,49 @@
         const macroUs10yVal = document.getElementById('macroUs10yVal');
         const macroUs10yChg = document.getElementById('macroUs10yChg');
         const bondDataMap = {
-            US: { short: { label: '미국 국채 2년', valText: '-', changeNum: null }, long: { label: '미국 국채 10년', valText: '-', changeNum: null } },
-            KR: { short: { label: '한국 국채 3년', valText: '-', changeNum: null }, long: { label: '한국 국채 10년', valText: '-', changeNum: null } },
-            JP: { short: { label: '일본 국채 2년', valText: '-', changeNum: null }, long: { label: '일본 국채 10년', valText: '-', changeNum: null } }
+            US: {
+                short: { label: '미국 국채 2년', valText: '-', changeNum: null, rawVal: null, pctVal: null },
+                long: { label: '미국 국채 10년', valText: '-', changeNum: null, rawVal: null, pctVal: null }
+            },
+            KR: {
+                short: { label: '한국 국채 3년', valText: '-', changeNum: null, rawVal: null, pctVal: null },
+                long: { label: '한국 국채 10년', valText: '-', changeNum: null, rawVal: null, pctVal: null }
+            },
+            JP: {
+                short: { label: '일본 국채 2년', valText: '-', changeNum: null, rawVal: null, pctVal: null },
+                long: { label: '일본 국채 10년', valText: '-', changeNum: null, rawVal: null, pctVal: null }
+            }
         };
         const bondRotationKeys = ['US', 'KR', 'JP'];
         let currentBondIndex = 0;
         let bondAnimationTimer = null;
+
         const indexDjiVal = document.getElementById('indexDjiVal');
         const indexDjiChg = document.getElementById('indexDjiChg');
         const indexIxicVal = document.getElementById('indexIxicVal');
         const indexIxicChg = document.getElementById('indexIxicChg');
         const indexSpxVal = document.getElementById('indexSpxVal');
         const indexSpxChg = document.getElementById('indexSpxChg');
+        const indexDataMap = {};
+
+        // 미니 차트 팝업 요소 및 상태
+        const macroPopover = document.getElementById('macroPopover');
+        const macroPopoverArrow = document.getElementById('macroPopoverArrow');
+        const popTitle = document.getElementById('popTitle');
+        const popBadge = document.getElementById('popBadge');
+        const popValue = document.getElementById('popValue');
+        const popChange = document.getElementById('popChange');
+        const popStartDate = document.getElementById('popStartDate');
+        const popEndDate = document.getElementById('popEndDate');
+        const popMinMax = document.getElementById('popMinMax');
+        const popPeriodBtns = document.querySelectorAll('.pop-period-btn');
+        let macroPopupChartInstance = null;
+        let activePopupItemKey = null;
+        let activePopupBoxEl = null;
+        let activePopupPeriod = '1m';
+        let popoverHideTimer = null;
+        let isMacroAnimationPaused = false;
+        const macroHistoryCache = {};
 
         // --- 2. API 설정 ---
         // Finnhub 기본 키 (내장 공식 키)
@@ -394,14 +471,11 @@
 
         // --- 4. 초기화 및 이벤트 리스너 ---
         window.addEventListener('DOMContentLoaded', async () => {
-            fetchMacroIndicators();
+            await fetchMacroIndicators();
             setInterval(fetchMacroIndicators, 60000);
-            if (!fxAnimationTimer) {
-                fxAnimationTimer = setInterval(rotateFxDisplay, 3500);
-            }
-            if (!bondAnimationTimer) {
-                bondAnimationTimer = setInterval(rotateBondDisplay, 3500);
-            }
+            startMacroRotations();
+            initMacroPopoverEvents();
+            setTimeout(prefetchDefaultMacroHistory, 1000);
             await fetchTickerData();
         });
 
@@ -798,6 +872,30 @@
             chgEl.textContent = `${arrow} ${Math.abs(changeNum).toFixed(2)}${suffix}`;
         }
 
+        function startMacroRotations() {
+            isMacroAnimationPaused = false;
+            if (fxAnimationTimer) clearInterval(fxAnimationTimer);
+            if (bondAnimationTimer) clearInterval(bondAnimationTimer);
+            fxAnimationTimer = setInterval(() => {
+                if (!isMacroAnimationPaused) rotateFxDisplay();
+            }, 3500);
+            bondAnimationTimer = setInterval(() => {
+                if (!isMacroAnimationPaused) rotateBondDisplay();
+            }, 3500);
+        }
+
+        function pauseMacroRotations() {
+            isMacroAnimationPaused = true;
+            if (fxAnimationTimer) {
+                clearInterval(fxAnimationTimer);
+                fxAnimationTimer = null;
+            }
+            if (bondAnimationTimer) {
+                clearInterval(bondAnimationTimer);
+                bondAnimationTimer = null;
+            }
+        }
+
         function updateCurrentFxDisplay(immediate = false) {
             const availableKeys = fxRotationKeys.filter(k => fxDataMap[k]);
             if (availableKeys.length === 0) return;
@@ -828,6 +926,7 @@
         }
 
         function rotateFxDisplay() {
+            if (isMacroAnimationPaused) return;
             const availableKeys = fxRotationKeys.filter(k => fxDataMap[k]);
             if (availableKeys.length <= 1) return;
             currentFxIndex = (currentFxIndex + 1) % availableKeys.length;
@@ -873,8 +972,520 @@
         }
 
         function rotateBondDisplay() {
+            if (isMacroAnimationPaused) return;
             currentBondIndex = (currentBondIndex + 1) % bondRotationKeys.length;
             updateCurrentBondDisplay(false);
+        }
+
+        // --- 미니 차트 팝업 (Popover) 메타데이터 및 함수 ---
+        const MACRO_ITEM_META = {
+            USDKRW: {
+                title: '달러 / 원 (USD/KRW)',
+                cnbcSymbol: 'KRW=',
+                yahooSymbol: 'USDKRW=X',
+                multiplier: 1,
+                formatVal: v => v.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getLive: () => fxDataMap['USDKRW']
+            },
+            DXY: {
+                title: '달러 인덱스 (DXY)',
+                cnbcSymbol: '.DXY',
+                yahooSymbol: 'DX-Y.NYB',
+                multiplier: 1,
+                formatVal: v => v.toFixed(2),
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getLive: () => fxDataMap['DXY']
+            },
+            JPYKRW: {
+                title: '엔 / 원 (100엔)',
+                cnbcSymbol: 'JPYKRW=',
+                yahooSymbol: 'JPYKRW=X',
+                multiplier: 100,
+                formatVal: v => v.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getLive: () => fxDataMap['JPYKRW']
+            },
+            EURKRW: {
+                title: '유로 / 원 (EUR/KRW)',
+                cnbcSymbol: 'EURKRW=',
+                yahooSymbol: 'EURKRW=X',
+                multiplier: 1,
+                formatVal: v => v.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getLive: () => fxDataMap['EURKRW']
+            },
+            USDJPY: {
+                title: '엔 / 달러 (USD/JPY)',
+                cnbcSymbol: 'JPY=',
+                yahooSymbol: 'JPY=X',
+                multiplier: 1,
+                formatVal: v => v.toFixed(2) + '엔',
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getLive: () => fxDataMap['USDJPY']
+            },
+            EURUSD: {
+                title: '유로 / 달러 (EUR/USD)',
+                cnbcSymbol: 'EUR=',
+                yahooSymbol: 'EURUSD=X',
+                multiplier: 1,
+                formatVal: v => v.toFixed(4) + '$',
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(4)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getLive: () => fxDataMap['EURUSD']
+            },
+            US_short: {
+                title: '미국 국채 2년 (US 2Y)',
+                cnbcSymbol: 'US2Y',
+                yahooSymbol: '2YY=F',
+                multiplier: 1,
+                formatVal: v => v.toFixed(2) + '%',
+                formatDiff: (chg) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)}%p`,
+                getLive: () => bondDataMap.US.short
+            },
+            US_long: {
+                title: '미국 국채 10년 (US 10Y)',
+                cnbcSymbol: 'US10Y',
+                yahooSymbol: '^TNX',
+                multiplier: 1,
+                formatVal: v => v.toFixed(2) + '%',
+                formatDiff: (chg) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)}%p`,
+                getLive: () => bondDataMap.US.long
+            },
+            KR_short: {
+                title: '한국 국채 3년 (KR 3Y)',
+                cnbcSymbol: 'KR5Y',
+                yahooSymbol: null,
+                multiplier: 1,
+                anchorToLive: true,
+                formatVal: v => v.toFixed(2) + '%',
+                formatDiff: (chg) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)}%p`,
+                getLive: () => bondDataMap.KR.short
+            },
+            KR_long: {
+                title: '한국 국채 10년 (KR 10Y)',
+                cnbcSymbol: 'KR10Y',
+                yahooSymbol: null,
+                multiplier: 1,
+                formatVal: v => v.toFixed(2) + '%',
+                formatDiff: (chg) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)}%p`,
+                getLive: () => bondDataMap.KR.long
+            },
+            JP_short: {
+                title: '일본 국채 2년 (JP 2Y)',
+                cnbcSymbol: 'JP2Y',
+                yahooSymbol: null,
+                multiplier: 1,
+                formatVal: v => v.toFixed(2) + '%',
+                formatDiff: (chg) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)}%p`,
+                getLive: () => bondDataMap.JP.short
+            },
+            JP_long: {
+                title: '일본 국채 10년 (JP 10Y)',
+                cnbcSymbol: 'JP10Y',
+                yahooSymbol: null,
+                multiplier: 1,
+                formatVal: v => v.toFixed(2) + '%',
+                formatDiff: (chg) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)}%p`,
+                getLive: () => bondDataMap.JP.long
+            },
+            DJI: {
+                title: '다우존스 산업평균 (Dow Jones)',
+                cnbcSymbol: '.DJI',
+                yahooSymbol: '^DJI',
+                multiplier: 1,
+                formatVal: v => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getLive: () => indexDataMap['DJI']
+            },
+            IXIC: {
+                title: '나스닥 종합 (NASDAQ)',
+                cnbcSymbol: '.IXIC',
+                yahooSymbol: '^IXIC',
+                multiplier: 1,
+                formatVal: v => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getLive: () => indexDataMap['IXIC']
+            },
+            SPX: {
+                title: 'S&P 500 지수',
+                cnbcSymbol: '.SPX',
+                yahooSymbol: '^GSPC',
+                multiplier: 1,
+                formatVal: v => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getLive: () => indexDataMap['SPX']
+            }
+        };
+
+        const PERIOD_CONFIG = {
+            '1w': { days: 10, badge: '최근 1주일 추세', yahooRange: '5d' },
+            '1m': { days: 34, badge: '최근 1개월 추세', yahooRange: '1mo' },
+            '3m': { days: 95, badge: '최근 3개월 추세', yahooRange: '3mo' },
+            '1y': { days: 366, badge: '최근 1년 추세', yahooRange: '1y' }
+        };
+
+        function formatCnbcTimestamp(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}${m}${day}000000`;
+        }
+
+        function formatKoreanDateLabel(yyyymmdd) {
+            if (!yyyymmdd || yyyymmdd.length < 8) return '';
+            const m = parseInt(yyyymmdd.substring(4, 6), 10);
+            const d = parseInt(yyyymmdd.substring(6, 8), 10);
+            return `${String(m).padStart(2, '0')}월 ${String(d).padStart(2, '0')}일`;
+        }
+
+        async function fetchMacroHistory(itemKey, period = '1m') {
+            const cacheKey = `${itemKey}_${period}`;
+            if (macroHistoryCache[cacheKey]) return macroHistoryCache[cacheKey];
+
+            const meta = MACRO_ITEM_META[itemKey];
+            if (!meta) return null;
+            const pCfg = PERIOD_CONFIG[period] || PERIOD_CONFIG['1m'];
+
+            let points = [];
+            // 1순위: CNBC ts-api (CORS * 지원, 초고속)
+            try {
+                const end = new Date();
+                end.setDate(end.getDate() + 1);
+                const start = new Date();
+                start.setDate(start.getDate() - pCfg.days);
+                const url = `https://ts-api.cnbc.com/harmony/app/bars/${encodeURIComponent(meta.cnbcSymbol)}/1D/${formatCnbcTimestamp(start)}/${formatCnbcTimestamp(end)}/adjusted/EST5EDT.json`;
+                const res = await fetchWithTimeout(url, { timeout: 4000 });
+                if (res.ok) {
+                    const json = await res.json();
+                    const bars = json?.barData?.priceBars || [];
+                    bars.forEach(b => {
+                        const c = parseFloat(b.close);
+                        if (!isNaN(c) && c > 0 && b.tradeTime) {
+                            points.push({
+                                dateStr: b.tradeTime.substring(0, 8),
+                                label: formatKoreanDateLabel(b.tradeTime),
+                                value: c * (meta.multiplier || 1)
+                            });
+                        }
+                    });
+                }
+            } catch (e) {}
+
+            // 2순위: Yahoo Finance 백업
+            if (points.length < 2 && meta.yahooSymbol) {
+                try {
+                    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(meta.yahooSymbol)}?range=${pCfg.yahooRange}&interval=1d`;
+                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+                    const res = await fetchWithTimeout(proxyUrl, { timeout: 4000 });
+                    if (res.ok) {
+                        const json = await res.json();
+                        const r0 = json?.chart?.result?.[0];
+                        const ts = r0?.timestamp || [];
+                        const closes = r0?.indicators?.quote?.[0]?.close || [];
+                        ts.forEach((t, idx) => {
+                            const c = closes[idx];
+                            if (c !== null && c !== undefined && !isNaN(c)) {
+                                const dt = new Date(t * 1000);
+                                const ym = `${dt.getFullYear()}${String(dt.getMonth() + 1).padStart(2, '0')}${String(dt.getDate()).padStart(2, '0')}`;
+                                points.push({
+                                    dateStr: ym,
+                                    label: formatKoreanDateLabel(ym),
+                                    value: c * (meta.multiplier || 1)
+                                });
+                            }
+                        });
+                    }
+                } catch (e) {}
+            }
+
+            if (points.length === 0) return null;
+
+            const live = meta.getLive ? meta.getLive() : null;
+            if (live && live.rawVal && !isNaN(live.rawVal)) {
+                if (meta.anchorToLive && points.length > 0) {
+                    const lastRaw = points[points.length - 1].value;
+                    const offset = live.rawVal - lastRaw;
+                    points = points.map(p => ({ ...p, value: p.value + offset }));
+                } else {
+                    points[points.length - 1].value = live.rawVal;
+                }
+            }
+
+            macroHistoryCache[cacheKey] = points;
+            return points;
+        }
+
+        async function prefetchDefaultMacroHistory() {
+            const keys = Object.keys(MACRO_ITEM_META);
+            for (const k of keys) {
+                await fetchMacroHistory(k, '1m').catch(() => null);
+            }
+        }
+
+        function resolveBoxItemKey(boxEl) {
+            if (boxEl === macroFxBox) {
+                const availableKeys = fxRotationKeys.filter(k => fxDataMap[k]);
+                return availableKeys.length > 0 ? availableKeys[currentFxIndex % availableKeys.length] : 'USDKRW';
+            }
+            if (boxEl === macroBondShortBox) {
+                const country = bondRotationKeys[currentBondIndex % bondRotationKeys.length];
+                return `${country}_short`;
+            }
+            if (boxEl === macroBond10yBox) {
+                const country = bondRotationKeys[currentBondIndex % bondRotationKeys.length];
+                return `${country}_long`;
+            }
+            if (boxEl === indexDjiBox) return 'DJI';
+            if (boxEl === indexIxicBox) return 'IXIC';
+            if (boxEl === indexSpxBox) return 'SPX';
+            return 'USDKRW';
+        }
+
+        function highlightActiveBox(boxEl) {
+            [macroFxBox, macroBondShortBox, macroBond10yBox, indexDjiBox, indexIxicBox, indexSpxBox].forEach(el => {
+                if (!el) return;
+                if (el === boxEl) {
+                    el.classList.add('bg-blue-50', 'ring-2', 'ring-blue-500');
+                } else {
+                    el.classList.remove('bg-blue-50', 'ring-2', 'ring-blue-500');
+                }
+            });
+        }
+
+        function positionMacroPopover(boxEl) {
+            if (!macroPopover || !macroSectionWrapper || !boxEl) return;
+            const wrapperRect = macroSectionWrapper.getBoundingClientRect();
+            const boxRect = boxEl.getBoundingClientRect();
+            const popW = macroPopover.offsetWidth || 340;
+
+            const topPx = (boxRect.bottom - wrapperRect.top) + 10;
+            const boxCenterX = (boxRect.left - wrapperRect.left) + (boxRect.width / 2);
+
+            let leftPx = boxCenterX - (popW / 2);
+            const maxLeft = Math.max(0, wrapperRect.width - popW);
+            if (leftPx < 0) leftPx = 0;
+            if (leftPx > maxLeft) leftPx = maxLeft;
+
+            macroPopover.style.top = `${Math.round(topPx)}px`;
+            macroPopover.style.left = `${Math.round(leftPx)}px`;
+
+            if (macroPopoverArrow) {
+                const arrowLeft = Math.max(16, Math.min(popW - 24, boxCenterX - leftPx - 7));
+                macroPopoverArrow.style.left = `${Math.round(arrowLeft)}px`;
+            }
+        }
+
+        function renderMacroPopoverChart(points, isUp, meta) {
+            const canvas = document.getElementById('macroPopupChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            if (macroPopupChartInstance) {
+                macroPopupChartInstance.destroy();
+                macroPopupChartInstance = null;
+            }
+
+            const lineColor = isUp ? '#dc2626' : '#2563eb';
+            const fillStart = isUp ? 'rgba(220, 38, 38, 0.18)' : 'rgba(37, 99, 235, 0.18)';
+            const fillEnd = isUp ? 'rgba(220, 38, 38, 0.0)' : 'rgba(37, 99, 235, 0.0)';
+
+            const grad = ctx.createLinearGradient(0, 0, 0, 96);
+            grad.addColorStop(0, fillStart);
+            grad.addColorStop(1, fillEnd);
+
+            const values = points.map(p => p.value);
+            const labels = points.map(p => p.label);
+            const minVal = Math.min(...values);
+            const maxVal = Math.max(...values);
+            const pad = (maxVal - minVal) * 0.12 || 0.05;
+
+            const pointRadii = values.map((_, idx) => idx === values.length - 1 ? 4 : 0);
+
+            macroPopupChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        borderColor: lineColor,
+                        borderWidth: 2,
+                        backgroundColor: grad,
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: pointRadii,
+                        pointHoverRadius: 4,
+                        pointBackgroundColor: lineColor,
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 1.5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 220 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            enabled: true,
+                            displayColors: false,
+                            callbacks: {
+                                label: context => meta.formatVal(context.parsed.y)
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            display: false,
+                            min: minVal - pad,
+                            max: maxVal + pad
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            });
+        }
+
+        async function openMacroPopover(boxEl, periodOverride = null) {
+            if (popoverHideTimer) {
+                clearTimeout(popoverHideTimer);
+                popoverHideTimer = null;
+            }
+
+            // 마우스가 올라가 모달이 열리면 즉시 애니메이션 일시 정지
+            pauseMacroRotations();
+
+            activePopupBoxEl = boxEl;
+            const itemKey = resolveBoxItemKey(boxEl);
+            activePopupItemKey = itemKey;
+            if (periodOverride) activePopupPeriod = periodOverride;
+
+            const meta = MACRO_ITEM_META[itemKey];
+            if (!meta) return;
+
+            highlightActiveBox(boxEl);
+
+            const pCfg = PERIOD_CONFIG[activePopupPeriod] || PERIOD_CONFIG['1m'];
+            popTitle.textContent = meta.title;
+            popBadge.textContent = pCfg.badge;
+
+            popPeriodBtns.forEach(btn => {
+                if (btn.dataset.period === activePopupPeriod) {
+                    btn.className = 'pop-period-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-600 text-white transition-colors';
+                } else {
+                    btn.className = 'pop-period-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors';
+                }
+            });
+
+            const live = meta.getLive ? meta.getLive() : null;
+            const isUp = (live && live.changeNum > 0);
+            const isDown = (live && live.changeNum < 0);
+
+            if (live && live.valText && live.valText !== '-') {
+                popValue.textContent = live.valText;
+                const chgNum = live.chgVal !== undefined && live.chgVal !== null ? live.chgVal : (live.changeNum || 0);
+                const pctNum = live.pctVal !== undefined && live.pctVal !== null ? live.pctVal : (live.changeNum || 0);
+                popChange.textContent = meta.formatDiff(chgNum, pctNum);
+                if (isUp) {
+                    popChange.className = 'text-[11px] font-bold px-2 py-0.5 rounded border bg-red-50 text-red-600 border-red-200';
+                } else if (isDown) {
+                    popChange.className = 'text-[11px] font-bold px-2 py-0.5 rounded border bg-blue-50 text-blue-600 border-blue-200';
+                } else {
+                    popChange.className = 'text-[11px] font-bold px-2 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200';
+                }
+            }
+
+            macroPopover.classList.remove('hidden');
+            positionMacroPopover(boxEl);
+
+            const points = await fetchMacroHistory(itemKey, activePopupPeriod);
+            if (activePopupItemKey !== itemKey || macroPopover.classList.contains('hidden')) return;
+
+            if (points && points.length > 1) {
+                const vals = points.map(p => p.value);
+                const minV = Math.min(...vals);
+                const maxV = Math.max(...vals);
+                popStartDate.textContent = points[0].label;
+                popEndDate.textContent = `${points[points.length - 1].label} (오늘)`;
+                popMinMax.textContent = `최저 ${meta.formatVal(minV)} · 최고 ${meta.formatVal(maxV)}`;
+                renderMacroPopoverChart(points, isUp, meta);
+            } else {
+                popStartDate.textContent = '-';
+                popEndDate.textContent = '오늘';
+                popMinMax.textContent = '데이터 불러오는 중...';
+            }
+        }
+
+        function scheduleCloseMacroPopover() {
+            if (popoverHideTimer) clearTimeout(popoverHideTimer);
+            popoverHideTimer = setTimeout(() => {
+                closeMacroPopover();
+            }, 180);
+        }
+
+        function closeMacroPopover() {
+            if (popoverHideTimer) {
+                clearTimeout(popoverHideTimer);
+                popoverHideTimer = null;
+            }
+            if (macroPopover) macroPopover.classList.add('hidden');
+            highlightActiveBox(null);
+            activePopupItemKey = null;
+            activePopupBoxEl = null;
+            // 모달이 닫히면 애니메이션 순환 자동 재개
+            startMacroRotations();
+        }
+
+        function initMacroPopoverEvents() {
+            const boxes = [macroFxBox, macroBondShortBox, macroBond10yBox, indexDjiBox, indexIxicBox, indexSpxBox];
+            boxes.forEach(box => {
+                if (!box) return;
+                box.addEventListener('mouseenter', () => {
+                    openMacroPopover(box);
+                });
+                box.addEventListener('mouseleave', () => {
+                    scheduleCloseMacroPopover();
+                });
+                box.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openMacroPopover(box);
+                });
+            });
+
+            if (macroPopover) {
+                macroPopover.addEventListener('mouseenter', () => {
+                    if (popoverHideTimer) {
+                        clearTimeout(popoverHideTimer);
+                        popoverHideTimer = null;
+                    }
+                    pauseMacroRotations();
+                });
+                macroPopover.addEventListener('mouseleave', () => {
+                    scheduleCloseMacroPopover();
+                });
+                macroPopover.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            }
+
+            popPeriodBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const newPeriod = btn.dataset.period;
+                    if (activePopupBoxEl && newPeriod) {
+                        openMacroPopover(activePopupBoxEl, newPeriod);
+                    }
+                });
+            });
+
+            document.addEventListener('click', (e) => {
+                if (macroPopover && !macroPopover.classList.contains('hidden')) {
+                    closeMacroPopover();
+                }
+            });
         }
 
         async function fetchMacroIndicators() {
@@ -885,7 +1496,7 @@
             let ixicLoaded = false;
             let spxLoaded = false;
 
-            // 1순위: CNBC 실시간 글로벌 마켓 피드 (환율 5종, 국채 6종 [미국/한국/일본], 3대 지수 3종 동시 초고속 조회)
+            // 1순위: CNBC 실시간 글로벌 마켓 피드 (환율 6종, 국채 6종 [미국/한국/일본], 3대 지수 3종 동시 초고속 조회)
             try {
                 const cnbcUrl = 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=US2Y%7CUS10Y%7CKRW%3D%7C.DXY%7CJPYKRW%3D%7CEURKRW%3D%7CJPY%3D%7CEUR%3D%7CJP2Y%7CJP10Y%7CKR3YT%3DRR%7CKR10Y%7C.DJI%7C.IXIC%7C.SPX&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1';
                 const res = await fetchWithTimeout(cnbcUrl, { timeout: 4500 });
@@ -905,6 +1516,9 @@
                                     label: '실시간 환율 (USD/KRW)',
                                     valText: lastVal.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
                                     changeNum: pctVal,
+                                    rawVal: lastVal,
+                                    chgVal,
+                                    pctVal,
                                     suffix: '%'
                                 };
                                 fxLoaded = true;
@@ -913,6 +1527,9 @@
                                     label: '달러 인덱스 (DXY)',
                                     valText: lastVal.toFixed(2),
                                     changeNum: pctVal,
+                                    rawVal: lastVal,
+                                    chgVal,
+                                    pctVal,
                                     suffix: '%'
                                 };
                             } else if (q.symbol === 'JPYKRW=') {
@@ -921,6 +1538,9 @@
                                     label: '엔/원 (100엔)',
                                     valText: jpy100.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
                                     changeNum: pctVal,
+                                    rawVal: jpy100,
+                                    chgVal: chgVal * 100,
+                                    pctVal,
                                     suffix: '%'
                                 };
                             } else if (q.symbol === 'EURKRW=') {
@@ -928,6 +1548,9 @@
                                     label: '유로/원 (EUR/KRW)',
                                     valText: lastVal.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
                                     changeNum: pctVal,
+                                    rawVal: lastVal,
+                                    chgVal,
+                                    pctVal,
                                     suffix: '%'
                                 };
                             } else if (q.symbol === 'JPY=') {
@@ -935,6 +1558,9 @@
                                     label: '엔/달러 (USD/JPY)',
                                     valText: lastVal.toFixed(2) + '엔',
                                     changeNum: pctVal,
+                                    rawVal: lastVal,
+                                    chgVal,
+                                    pctVal,
                                     suffix: '%'
                                 };
                             } else if (q.symbol === 'EUR=') {
@@ -942,38 +1568,62 @@
                                     label: '유로/달러 (EUR/USD)',
                                     valText: lastVal.toFixed(4) + '$',
                                     changeNum: pctVal,
+                                    rawVal: lastVal,
+                                    chgVal,
+                                    pctVal,
                                     suffix: '%'
                                 };
                             } else if (q.symbol === 'US2Y') {
                                 bondDataMap.US.short.valText = lastVal.toFixed(2) + '%';
                                 bondDataMap.US.short.changeNum = chgVal;
+                                bondDataMap.US.short.rawVal = lastVal;
+                                bondDataMap.US.short.chgVal = chgVal;
+                                bondDataMap.US.short.pctVal = pctVal;
                                 us2yLoaded = true;
                             } else if (q.symbol === 'US10Y') {
                                 bondDataMap.US.long.valText = lastVal.toFixed(2) + '%';
                                 bondDataMap.US.long.changeNum = chgVal;
+                                bondDataMap.US.long.rawVal = lastVal;
+                                bondDataMap.US.long.chgVal = chgVal;
+                                bondDataMap.US.long.pctVal = pctVal;
                                 us10yLoaded = true;
                             } else if (q.symbol === 'KR3YT=RR') {
                                 bondDataMap.KR.short.valText = lastVal.toFixed(2) + '%';
                                 bondDataMap.KR.short.changeNum = chgVal;
+                                bondDataMap.KR.short.rawVal = lastVal;
+                                bondDataMap.KR.short.chgVal = chgVal;
+                                bondDataMap.KR.short.pctVal = pctVal;
                             } else if (q.symbol === 'KR10Y') {
                                 bondDataMap.KR.long.valText = lastVal.toFixed(2) + '%';
                                 bondDataMap.KR.long.changeNum = chgVal;
+                                bondDataMap.KR.long.rawVal = lastVal;
+                                bondDataMap.KR.long.chgVal = chgVal;
+                                bondDataMap.KR.long.pctVal = pctVal;
                             } else if (q.symbol === 'JP2Y') {
                                 bondDataMap.JP.short.valText = lastVal.toFixed(2) + '%';
                                 bondDataMap.JP.short.changeNum = chgVal;
+                                bondDataMap.JP.short.rawVal = lastVal;
+                                bondDataMap.JP.short.chgVal = chgVal;
+                                bondDataMap.JP.short.pctVal = pctVal;
                             } else if (q.symbol === 'JP10Y') {
                                 bondDataMap.JP.long.valText = lastVal.toFixed(2) + '%';
                                 bondDataMap.JP.long.changeNum = chgVal;
+                                bondDataMap.JP.long.rawVal = lastVal;
+                                bondDataMap.JP.long.chgVal = chgVal;
+                                bondDataMap.JP.long.pctVal = pctVal;
                             } else if (q.symbol === '.DJI') {
                                 const formatted = lastVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                indexDataMap['DJI'] = { label: '다우존스', valText: formatted, changeNum: pctVal, rawVal: lastVal, chgVal, pctVal };
                                 renderMacroItem(indexDjiVal, indexDjiChg, formatted, pctVal, '%');
                                 djiLoaded = true;
                             } else if (q.symbol === '.IXIC') {
                                 const formatted = lastVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                indexDataMap['IXIC'] = { label: '나스닥', valText: formatted, changeNum: pctVal, rawVal: lastVal, chgVal, pctVal };
                                 renderMacroItem(indexIxicVal, indexIxicChg, formatted, pctVal, '%');
                                 ixicLoaded = true;
                             } else if (q.symbol === '.SPX') {
                                 const formatted = lastVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                indexDataMap['SPX'] = { label: 'S&P 500', valText: formatted, changeNum: pctVal, rawVal: lastVal, chgVal, pctVal };
                                 renderMacroItem(indexSpxVal, indexSpxChg, formatted, pctVal, '%');
                                 spxLoaded = true;
                             }
@@ -990,10 +1640,14 @@
                     const fxQuote = await fetchYahooQuote('USDKRW=X');
                     if (fxQuote && fxQuote.price) {
                         usdToKrwRate = fxQuote.price;
+                        const diff = fxQuote.prevClose ? (fxQuote.price - fxQuote.prevClose) : 0;
                         fxDataMap['USDKRW'] = {
                             label: '실시간 환율 (USD/KRW)',
                             valText: fxQuote.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
                             changeNum: fxQuote.changePercent,
+                            rawVal: fxQuote.price,
+                            chgVal: diff,
+                            pctVal: fxQuote.changePercent,
                             suffix: '%'
                         };
                         fxLoaded = true;
@@ -1005,10 +1659,14 @@
                 try {
                     const dxyQuote = await fetchYahooQuote('DX-Y.NYB');
                     if (dxyQuote && dxyQuote.price) {
+                        const diff = dxyQuote.prevClose ? (dxyQuote.price - dxyQuote.prevClose) : 0;
                         fxDataMap['DXY'] = {
                             label: '달러 인덱스 (DXY)',
                             valText: dxyQuote.price.toFixed(2),
                             changeNum: dxyQuote.changePercent,
+                            rawVal: dxyQuote.price,
+                            chgVal: diff,
+                            pctVal: dxyQuote.changePercent,
                             suffix: '%'
                         };
                     }
@@ -1019,10 +1677,14 @@
                 try {
                     const jpyKrwQuote = await fetchYahooQuote('JPYKRW=X');
                     if (jpyKrwQuote && jpyKrwQuote.price) {
+                        const diff = jpyKrwQuote.prevClose ? (jpyKrwQuote.price - jpyKrwQuote.prevClose) * 100 : 0;
                         fxDataMap['JPYKRW'] = {
                             label: '엔/원 (100엔)',
                             valText: (jpyKrwQuote.price * 100).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
                             changeNum: jpyKrwQuote.changePercent,
+                            rawVal: jpyKrwQuote.price * 100,
+                            chgVal: diff,
+                            pctVal: jpyKrwQuote.changePercent,
                             suffix: '%'
                         };
                     }
@@ -1033,10 +1695,14 @@
                 try {
                     const eurKrwQuote = await fetchYahooQuote('EURKRW=X');
                     if (eurKrwQuote && eurKrwQuote.price) {
+                        const diff = eurKrwQuote.prevClose ? (eurKrwQuote.price - eurKrwQuote.prevClose) : 0;
                         fxDataMap['EURKRW'] = {
                             label: '유로/원 (EUR/KRW)',
                             valText: eurKrwQuote.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
                             changeNum: eurKrwQuote.changePercent,
+                            rawVal: eurKrwQuote.price,
+                            chgVal: diff,
+                            pctVal: eurKrwQuote.changePercent,
                             suffix: '%'
                         };
                     }
@@ -1047,10 +1713,14 @@
                 try {
                     const jpyQuote = await fetchYahooQuote('JPY=X');
                     if (jpyQuote && jpyQuote.price) {
+                        const diff = jpyQuote.prevClose ? (jpyQuote.price - jpyQuote.prevClose) : 0;
                         fxDataMap['USDJPY'] = {
                             label: '엔/달러 (USD/JPY)',
                             valText: jpyQuote.price.toFixed(2) + '엔',
                             changeNum: jpyQuote.changePercent,
+                            rawVal: jpyQuote.price,
+                            chgVal: diff,
+                            pctVal: jpyQuote.changePercent,
                             suffix: '%'
                         };
                     }
@@ -1061,10 +1731,14 @@
                 try {
                     const eurQuote = await fetchYahooQuote('EURUSD=X');
                     if (eurQuote && eurQuote.price) {
+                        const diff = eurQuote.prevClose ? (eurQuote.price - eurQuote.prevClose) : 0;
                         fxDataMap['EURUSD'] = {
                             label: '유로/달러 (EUR/USD)',
                             valText: eurQuote.price.toFixed(4) + '$',
                             changeNum: eurQuote.changePercent,
+                            rawVal: eurQuote.price,
+                            chgVal: diff,
+                            pctVal: eurQuote.changePercent,
                             suffix: '%'
                         };
                     }
@@ -1082,6 +1756,8 @@
                         const diff = tnQuote.prevClose ? (tnQuote.price - tnQuote.prevClose) : 0;
                         bondDataMap.US.long.valText = tnQuote.price.toFixed(2) + '%';
                         bondDataMap.US.long.changeNum = diff;
+                        bondDataMap.US.long.rawVal = tnQuote.price;
+                        bondDataMap.US.long.chgVal = diff;
                         us10yLoaded = true;
                     }
                 } catch (e) {}
@@ -1094,6 +1770,8 @@
                         const diff = tyQuote.prevClose ? (tyQuote.price - tyQuote.prevClose) : 0;
                         bondDataMap.US.short.valText = tyQuote.price.toFixed(2) + '%';
                         bondDataMap.US.short.changeNum = diff;
+                        bondDataMap.US.short.rawVal = tyQuote.price;
+                        bondDataMap.US.short.chgVal = diff;
                         us2yLoaded = true;
                     }
                 } catch (e) {}
@@ -1107,6 +1785,8 @@
                     const djiQuote = await fetchYahooQuote('^DJI');
                     if (djiQuote && djiQuote.price) {
                         const formatted = djiQuote.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        const diff = djiQuote.prevClose ? (djiQuote.price - djiQuote.prevClose) : 0;
+                        indexDataMap['DJI'] = { label: '다우존스', valText: formatted, changeNum: djiQuote.changePercent, rawVal: djiQuote.price, chgVal: diff, pctVal: djiQuote.changePercent };
                         renderMacroItem(indexDjiVal, indexDjiChg, formatted, djiQuote.changePercent, '%');
                         djiLoaded = true;
                     }
@@ -1118,6 +1798,8 @@
                     const ixicQuote = await fetchYahooQuote('^IXIC');
                     if (ixicQuote && ixicQuote.price) {
                         const formatted = ixicQuote.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        const diff = ixicQuote.prevClose ? (ixicQuote.price - ixicQuote.prevClose) : 0;
+                        indexDataMap['IXIC'] = { label: '나스닥', valText: formatted, changeNum: ixicQuote.changePercent, rawVal: ixicQuote.price, chgVal: diff, pctVal: ixicQuote.changePercent };
                         renderMacroItem(indexIxicVal, indexIxicChg, formatted, ixicQuote.changePercent, '%');
                         ixicLoaded = true;
                     }
@@ -1129,6 +1811,8 @@
                     const spxQuote = await fetchYahooQuote('^GSPC');
                     if (spxQuote && spxQuote.price) {
                         const formatted = spxQuote.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        const diff = spxQuote.prevClose ? (spxQuote.price - spxQuote.prevClose) : 0;
+                        indexDataMap['SPX'] = { label: 'S&P 500', valText: formatted, changeNum: spxQuote.changePercent, rawVal: spxQuote.price, chgVal: diff, pctVal: spxQuote.changePercent };
                         renderMacroItem(indexSpxVal, indexSpxChg, formatted, spxQuote.changePercent, '%');
                         spxLoaded = true;
                     }
