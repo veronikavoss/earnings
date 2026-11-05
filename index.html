@@ -155,13 +155,19 @@
             </div>
 
             <!-- 마우스 호버 / 클릭 미니 추세 차트 팝업 (Popover) -->
-            <div id="macroPopover" class="hidden absolute z-50 w-[310px] sm:w-[350px] bg-white border border-slate-300 rounded-xl shadow-2xl p-4 transition-opacity duration-150">
+            <div id="macroPopover" class="hidden absolute z-50 w-[320px] sm:w-[360px] bg-white border border-slate-300 rounded-xl shadow-2xl p-4 transition-opacity duration-150">
                 <!-- 상단 화살표 포인터 -->
                 <div id="macroPopoverArrow" class="w-3.5 h-3.5 bg-white border-l border-t border-slate-300 transform rotate-45 absolute -top-2 left-20"></div>
-                <!-- 1행: 타이틀 & 기간 배지 -->
+                <!-- 1행: 타이틀 & 차트 모드 토글 / 기간 배지 -->
                 <div class="flex items-center justify-between gap-2 mb-1.5">
                     <span id="popTitle" class="text-xs sm:text-sm font-bold text-slate-900 truncate">-</span>
-                    <span id="popBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">최근 1개월 추세</span>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <div class="inline-flex rounded-md bg-slate-100 p-0.5 border border-slate-200" id="popChartTypeTabs">
+                            <button type="button" data-chart-type="candle" class="pop-chart-type-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-600 text-white transition-colors">캔들</button>
+                            <button type="button" data-chart-type="line" class="pop-chart-type-btn text-[10px] font-semibold px-1.5 py-0.5 rounded text-slate-500 hover:text-slate-800 transition-colors">라인</button>
+                        </div>
+                        <span id="popBadge" class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">최근 1개월</span>
+                    </div>
                 </div>
                 <!-- 2행: 현재 수치 & 등락 배지 -->
                 <div class="flex items-baseline gap-2 mb-2">
@@ -169,7 +175,7 @@
                     <span id="popChange" class="text-[11px] font-bold px-2 py-0.5 rounded border">-</span>
                 </div>
                 <!-- 3행: 미니 추세 그래프 영역 -->
-                <div class="relative h-24 w-full">
+                <div class="relative h-28 w-full">
                     <canvas id="macroPopupChart"></canvas>
                 </div>
                 <div class="flex justify-between items-center text-[10px] text-slate-400 mt-1 pb-2 border-b border-slate-100">
@@ -444,10 +450,14 @@
         const popEndDate = document.getElementById('popEndDate');
         const popMinMax = document.getElementById('popMinMax');
         const popPeriodBtns = document.querySelectorAll('.pop-period-btn');
+        const popChartTypeBtns = document.querySelectorAll('.pop-chart-type-btn');
         let macroPopupChartInstance = null;
         let activePopupItemKey = null;
         let activePopupBoxEl = null;
         let activePopupPeriod = '1m';
+        let activePopupChartType = 'candle';
+        let stockChartTypePref = 'candle'; // 기업 현재가 호버 시 기본 일봉(캔들) 차트
+        let macroChartTypePref = 'line';   // 거시경제 지표 호버 시 기본 라인 차트 (캔들 전환 가능)
         let popoverHideTimer = null;
         let isMacroAnimationPaused = false;
         const macroHistoryCache = {};
@@ -1175,9 +1185,10 @@
             const meta = getMacroItemMeta(itemKey);
             if (!meta) return null;
             const pCfg = PERIOD_CONFIG[period] || PERIOD_CONFIG['1m'];
+            const mult = meta.multiplier || 1;
 
             let points = [];
-            // 1순위: CNBC ts-api (CORS * 지원, 초고속)
+            // 1순위: CNBC ts-api (CORS * 지원, 초고속, 일봉 OHLC 포함)
             try {
                 const end = new Date();
                 end.setDate(end.getDate() + 1);
@@ -1190,18 +1201,29 @@
                     const bars = json?.barData?.priceBars || [];
                     bars.forEach(b => {
                         const c = parseFloat(b.close);
+                        const o = parseFloat(b.open);
+                        const h = parseFloat(b.high);
+                        const l = parseFloat(b.low);
                         if (!isNaN(c) && c > 0 && b.tradeTime) {
+                            const closeVal = c * mult;
+                            const openVal = (!isNaN(o) && o > 0) ? o * mult : closeVal;
+                            const highVal = (!isNaN(h) && h > 0) ? h * mult : Math.max(openVal, closeVal);
+                            const lowVal = (!isNaN(l) && l > 0) ? l * mult : Math.min(openVal, closeVal);
                             points.push({
                                 dateStr: b.tradeTime.substring(0, 8),
                                 label: formatKoreanDateLabel(b.tradeTime),
-                                value: c * (meta.multiplier || 1)
+                                value: closeVal,
+                                open: openVal,
+                                high: Math.max(highVal, openVal, closeVal),
+                                low: Math.min(lowVal, openVal, closeVal),
+                                close: closeVal
                             });
                         }
                     });
                 }
             } catch (e) {}
 
-            // 2순위: Yahoo Finance 백업
+            // 2순위: Yahoo Finance 백업 (일봉 OHLC 포함)
             if (points.length < 2 && meta.yahooSymbol) {
                 try {
                     const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(meta.yahooSymbol)}?range=${pCfg.yahooRange}&interval=1d`;
@@ -1211,16 +1233,31 @@
                         const json = await res.json();
                         const r0 = json?.chart?.result?.[0];
                         const ts = r0?.timestamp || [];
-                        const closes = r0?.indicators?.quote?.[0]?.close || [];
+                        const q0 = r0?.indicators?.quote?.[0] || {};
+                        const opens = q0.open || [];
+                        const highs = q0.high || [];
+                        const lows = q0.low || [];
+                        const closes = q0.close || [];
                         ts.forEach((t, idx) => {
                             const c = closes[idx];
                             if (c !== null && c !== undefined && !isNaN(c)) {
+                                const o = opens[idx];
+                                const h = highs[idx];
+                                const l = lows[idx];
+                                const closeVal = c * mult;
+                                const openVal = (o !== null && o !== undefined && !isNaN(o)) ? o * mult : closeVal;
+                                const highVal = (h !== null && h !== undefined && !isNaN(h)) ? h * mult : Math.max(openVal, closeVal);
+                                const lowVal = (l !== null && l !== undefined && !isNaN(l)) ? l * mult : Math.min(openVal, closeVal);
                                 const dt = new Date(t * 1000);
                                 const ym = `${dt.getFullYear()}${String(dt.getMonth() + 1).padStart(2, '0')}${String(dt.getDate()).padStart(2, '0')}`;
                                 points.push({
                                     dateStr: ym,
                                     label: formatKoreanDateLabel(ym),
-                                    value: c * (meta.multiplier || 1)
+                                    value: closeVal,
+                                    open: openVal,
+                                    high: Math.max(highVal, openVal, closeVal),
+                                    low: Math.min(lowVal, openVal, closeVal),
+                                    close: closeVal
                                 });
                             }
                         });
@@ -1235,9 +1272,20 @@
                 if (meta.anchorToLive && points.length > 0) {
                     const lastRaw = points[points.length - 1].value;
                     const offset = live.rawVal - lastRaw;
-                    points = points.map(p => ({ ...p, value: p.value + offset }));
+                    points = points.map(p => ({
+                        ...p,
+                        value: p.value + offset,
+                        open: (p.open ?? p.value) + offset,
+                        high: (p.high ?? p.value) + offset,
+                        low: (p.low ?? p.value) + offset,
+                        close: (p.close ?? p.value) + offset
+                    }));
                 } else {
-                    points[points.length - 1].value = live.rawVal;
+                    const lastPt = points[points.length - 1];
+                    lastPt.value = live.rawVal;
+                    lastPt.close = live.rawVal;
+                    if (lastPt.high === undefined || live.rawVal > lastPt.high) lastPt.high = live.rawVal;
+                    if (lastPt.low === undefined || live.rawVal < lastPt.low) lastPt.low = live.rawVal;
                 }
             }
 
@@ -1308,7 +1356,7 @@
             }
         }
 
-        function renderMacroPopoverChart(points, isUp, meta) {
+        function renderMacroPopoverChart(points, isUp, meta, chartMode = 'line') {
             const canvas = document.getElementById('macroPopupChart');
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
@@ -1318,16 +1366,147 @@
                 macroPopupChartInstance = null;
             }
 
+            const labels = points.map(p => p.label);
+
+            if (chartMode === 'candle') {
+                const lows = points.map(p => p.low ?? p.value);
+                const highs = points.map(p => p.high ?? p.value);
+                const minVal = Math.min(...lows);
+                const maxVal = Math.max(...highs);
+                const pad = (maxVal - minVal) * 0.12 || 0.05;
+
+                // 양봉(종가 >= 시가): 빨간색, 음봉(종가 < 시가): 파란색
+                const bodyData = points.map(p => {
+                    const o = p.open ?? p.value;
+                    const c = p.close ?? p.value;
+                    return [Math.min(o, c), Math.max(o, c)];
+                });
+                const bgColors = points.map(p => (p.close ?? p.value) >= (p.open ?? p.value) ? '#ef4444' : '#3b82f6');
+                const borderColors = points.map(p => (p.close ?? p.value) >= (p.open ?? p.value) ? '#dc2626' : '#2563eb');
+                const isDense = points.length > 90;
+
+                const candlestickWickPlugin = {
+                    id: 'candlestickWick',
+                    beforeDatasetsDraw(chart) {
+                        const { ctx: cCtx, scales: { y } } = chart;
+                        const dsMeta = chart.getDatasetMeta(0);
+                        if (!dsMeta || !dsMeta.data) return;
+                        cCtx.save();
+                        dsMeta.data.forEach((barEl, idx) => {
+                            const pt = points[idx];
+                            if (!pt) return;
+                            const o = pt.open ?? pt.value;
+                            const c = pt.close ?? pt.value;
+                            const h = pt.high ?? Math.max(o, c);
+                            const l = pt.low ?? Math.min(o, c);
+                            const isUpCandle = c >= o;
+                            cCtx.beginPath();
+                            cCtx.strokeStyle = isUpCandle ? '#dc2626' : '#2563eb';
+                            cCtx.lineWidth = isDense ? 0.9 : 1.25;
+                            cCtx.moveTo(barEl.x, y.getPixelForValue(h));
+                            cCtx.lineTo(barEl.x, y.getPixelForValue(l));
+                            cCtx.stroke();
+                        });
+                        cCtx.restore();
+                    },
+                    afterDatasetsDraw(chart) {
+                        const { ctx: cCtx, scales: { y } } = chart;
+                        const dsMeta = chart.getDatasetMeta(0);
+                        if (!dsMeta || !dsMeta.data) return;
+                        cCtx.save();
+                        dsMeta.data.forEach((barEl, idx) => {
+                            const pt = points[idx];
+                            if (!pt) return;
+                            const o = pt.open ?? pt.value;
+                            const c = pt.close ?? pt.value;
+                            const openY = y.getPixelForValue(o);
+                            const closeY = y.getPixelForValue(c);
+                            // 시가와 종가가 거의 같은 도지(Doji) 캔들일 때 최소 1.5px 수평 몸통선 보장
+                            if (Math.abs(closeY - openY) < 1.5) {
+                                const halfW = Math.max(1.5, (barEl.width || 4) / 2);
+                                cCtx.beginPath();
+                                cCtx.strokeStyle = c >= o ? '#dc2626' : '#2563eb';
+                                cCtx.lineWidth = 1.5;
+                                cCtx.moveTo(barEl.x - halfW, openY);
+                                cCtx.lineTo(barEl.x + halfW, openY);
+                                cCtx.stroke();
+                            }
+                        });
+                        cCtx.restore();
+                    }
+                };
+
+                macroPopupChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            data: bodyData,
+                            backgroundColor: bgColors,
+                            borderColor: borderColors,
+                            borderWidth: isDense ? 0 : 1,
+                            borderSkipped: false,
+                            barPercentage: isDense ? 0.88 : 0.72,
+                            categoryPercentage: isDense ? 0.92 : 0.82
+                        }]
+                    },
+                    plugins: [candlestickWickPlugin],
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 200 },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                enabled: true,
+                                displayColors: false,
+                                callbacks: {
+                                    title: items => items.length ? points[items[0].dataIndex]?.label : '',
+                                    label: context => {
+                                        const pt = points[context.dataIndex];
+                                        if (!pt) return '';
+                                        const o = pt.open ?? pt.value;
+                                        const h = pt.high ?? pt.value;
+                                        const l = pt.low ?? pt.value;
+                                        const c = pt.close ?? pt.value;
+                                        const prevC = context.dataIndex > 0 ? (points[context.dataIndex - 1].close ?? points[context.dataIndex - 1].value) : o;
+                                        const pct = prevC ? ((c - prevC) / prevC) * 100 : 0;
+                                        const sign = pct >= 0 ? '+' : '';
+                                        return [
+                                            `종가: ${meta.formatVal(c)} (${sign}${pct.toFixed(2)}%)`,
+                                            `시가: ${meta.formatVal(o)}`,
+                                            `고가: ${meta.formatVal(h)} · 저가: ${meta.formatVal(l)}`
+                                        ];
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { display: false },
+                            y: {
+                                display: false,
+                                min: minVal - pad,
+                                max: maxVal + pad
+                            }
+                        },
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                });
+                return;
+            }
+
             const lineColor = isUp ? '#dc2626' : '#2563eb';
             const fillStart = isUp ? 'rgba(220, 38, 38, 0.18)' : 'rgba(37, 99, 235, 0.18)';
             const fillEnd = isUp ? 'rgba(220, 38, 38, 0.0)' : 'rgba(37, 99, 235, 0.0)';
 
-            const grad = ctx.createLinearGradient(0, 0, 0, 96);
+            const grad = ctx.createLinearGradient(0, 0, 0, 112);
             grad.addColorStop(0, fillStart);
             grad.addColorStop(1, fillEnd);
 
             const values = points.map(p => p.value);
-            const labels = points.map(p => p.label);
             const minVal = Math.min(...values);
             const maxVal = Math.max(...values);
             const pad = (maxVal - minVal) * 0.12 || 0.05;
@@ -1382,7 +1561,7 @@
             });
         }
 
-        async function openMacroPopover(boxEl, periodOverride = null) {
+        async function openMacroPopover(boxEl, periodOverride = null, chartTypeOverride = null) {
             if (popoverHideTimer) {
                 clearTimeout(popoverHideTimer);
                 popoverHideTimer = null;
@@ -1399,11 +1578,28 @@
             const meta = getMacroItemMeta(itemKey);
             if (!meta) return;
 
+            const isStockBox = Boolean(meta.isStock);
+            if (chartTypeOverride) {
+                if (isStockBox) stockChartTypePref = chartTypeOverride;
+                else macroChartTypePref = chartTypeOverride;
+            }
+            activePopupChartType = isStockBox ? stockChartTypePref : macroChartTypePref;
+
             highlightActiveBox(boxEl);
 
             const pCfg = PERIOD_CONFIG[activePopupPeriod] || PERIOD_CONFIG['1m'];
             popTitle.textContent = meta.title;
-            popBadge.textContent = pCfg.badge;
+            popBadge.textContent = activePopupChartType === 'candle'
+                ? pCfg.badge.replace('추세', '일봉')
+                : pCfg.badge;
+
+            popChartTypeBtns.forEach(btn => {
+                if (btn.dataset.chartType === activePopupChartType) {
+                    btn.className = 'pop-chart-type-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-600 text-white transition-colors';
+                } else {
+                    btn.className = 'pop-chart-type-btn text-[10px] font-semibold px-1.5 py-0.5 rounded text-slate-500 hover:text-slate-800 transition-colors';
+                }
+            });
 
             popPeriodBtns.forEach(btn => {
                 if (btn.dataset.period === activePopupPeriod) {
@@ -1438,13 +1634,16 @@
             if (activePopupItemKey !== itemKey || macroPopover.classList.contains('hidden')) return;
 
             if (points && points.length > 1) {
-                const vals = points.map(p => p.value);
-                const minV = Math.min(...vals);
-                const maxV = Math.max(...vals);
+                const minV = activePopupChartType === 'candle'
+                    ? Math.min(...points.map(p => p.low ?? p.value))
+                    : Math.min(...points.map(p => p.value));
+                const maxV = activePopupChartType === 'candle'
+                    ? Math.max(...points.map(p => p.high ?? p.value))
+                    : Math.max(...points.map(p => p.value));
                 popStartDate.textContent = points[0].label;
                 popEndDate.textContent = `${points[points.length - 1].label} (오늘)`;
                 popMinMax.textContent = `최저 ${meta.formatVal(minV)} · 최고 ${meta.formatVal(maxV)}`;
-                renderMacroPopoverChart(points, isUp, meta);
+                renderMacroPopoverChart(points, isUp, meta, activePopupChartType);
             } else {
                 popStartDate.textContent = '-';
                 popEndDate.textContent = '오늘';
@@ -1503,6 +1702,16 @@
                     e.stopPropagation();
                 });
             }
+
+            popChartTypeBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const newChartType = btn.dataset.chartType;
+                    if (activePopupBoxEl && newChartType) {
+                        openMacroPopover(activePopupBoxEl, null, newChartType);
+                    }
+                });
+            });
 
             popPeriodBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
