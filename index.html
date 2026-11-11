@@ -94,10 +94,18 @@
 
         <!-- 실시간 거시경제 지표 & 3대 지수 통합 래퍼 (마우스 호버 미니차트 팝업 포함) -->
         <div id="macroSectionWrapper" class="relative mb-6 md:mb-8">
-            <!-- 실시간 거시경제 지표 위젯 (검색창 하단 상시 고정) -->
-            <div id="macroWidget" class="w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1.5 py-1.5 sm:px-3 sm:py-2 mb-2 sm:mb-2.5 shadow-sm">
+            <!-- 실시간 거시경제 지표 위젯 (환율 및 국채, 수동 변경 화살표 버튼 포함) -->
+            <div id="macroWidget" class="relative group w-full bg-gray-50/90 border border-gray-200 rounded-lg px-4 sm:px-6 py-1.5 sm:py-2 mb-2 sm:mb-2.5 shadow-sm">
+                <!-- 좌측 수동 이전 버튼 -->
+                <button type="button" id="macroPrevBtn" title="이전 환율/국채 지표 (수동 변경)" aria-label="이전 지표"
+                        class="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-4 h-6 sm:w-5 sm:h-7 flex items-center justify-center rounded bg-white/70 hover:bg-white text-gray-500 hover:text-blue-600 shadow-sm border border-gray-200/80 backdrop-blur-[2px] transition-all cursor-pointer opacity-40 hover:opacity-100 active:scale-90 select-none">
+                    <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <!-- 3개 지표 영역 -->
                 <div class="grid grid-cols-3 divide-x divide-gray-200 items-center">
-                    <div id="macroFxBox" class="flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
+                    <div id="macroFxBox" class="flex flex-col items-center justify-center px-0.5 sm:px-2 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
                         <div id="macroFxAnimated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
                             <span id="macroFxLabel" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">실시간 환율 (USD/KRW)</span>
                             <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
@@ -106,7 +114,7 @@
                             </div>
                         </div>
                     </div>
-                    <div id="macroBondShortBox" class="flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
+                    <div id="macroBondShortBox" class="flex flex-col items-center justify-center px-0.5 sm:px-2 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
                         <div id="macroBondShortAnimated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
                             <span id="macroBondShortLabel" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 2년</span>
                             <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
@@ -115,7 +123,7 @@
                             </div>
                         </div>
                     </div>
-                    <div id="macroBond10yBox" class="flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
+                    <div id="macroBond10yBox" class="flex flex-col items-center justify-center px-0.5 sm:px-2 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
                         <div id="macroBond10yAnimated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
                             <span id="macroBond10yLabel" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 10년</span>
                             <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
@@ -125,33 +133,61 @@
                         </div>
                     </div>
                 </div>
+                <!-- 우측 수동 다음 버튼 -->
+                <button type="button" id="macroNextBtn" title="다음 환율/국채 지표 (수동 변경)" aria-label="다음 지표"
+                        class="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-4 h-6 sm:w-5 sm:h-7 flex items-center justify-center rounded bg-white/70 hover:bg-white text-gray-500 hover:text-blue-600 shadow-sm border border-gray-200/80 backdrop-blur-[2px] transition-all cursor-pointer opacity-40 hover:opacity-100 active:scale-90 select-none">
+                    <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
             </div>
 
-            <!-- 실시간 미국 3대 주요 지수 위젯 (다우존스, 나스닥, S&P 500) -->
-            <div id="indexWidget" class="w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1.5 py-1.5 sm:px-3 sm:py-2 shadow-sm">
+            <!-- 실시간 주요 지수 위젯 (미국 3대 지수 ↔ 아시아 3대 지수: 코스피, 닛케이, 상해종합, 수동 변경 화살표 버튼 포함) -->
+            <div id="indexWidget" class="relative group w-full bg-gray-50/90 border border-gray-200 rounded-lg px-4 sm:px-6 py-1.5 sm:py-2 shadow-sm">
+                <!-- 좌측 수동 이전 버튼 -->
+                <button type="button" id="indexPrevBtn" title="이전 지수 그룹 (수동 변경)" aria-label="이전 지수"
+                        class="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-4 h-6 sm:w-5 sm:h-7 flex items-center justify-center rounded bg-white/70 hover:bg-white text-gray-500 hover:text-blue-600 shadow-sm border border-gray-200/80 backdrop-blur-[2px] transition-all cursor-pointer opacity-40 hover:opacity-100 active:scale-90 select-none">
+                    <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <!-- 3개 지수 영역 (순환 및 수동 전환) -->
                 <div class="grid grid-cols-3 divide-x divide-gray-200 items-center">
-                    <div id="indexDjiBox" class="flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400">
-                        <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap pointer-events-none">다우존스</span>
-                        <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap pointer-events-none">
-                            <span id="indexDjiVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
-                            <span id="indexDjiChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                    <div id="indexBox1" class="flex flex-col items-center justify-center px-0.5 sm:px-2 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
+                        <div id="indexBox1Animated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
+                            <span id="indexBox1Label" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">다우존스</span>
+                            <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                                <span id="indexBox1Val" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                                <span id="indexBox1Chg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                            </div>
                         </div>
                     </div>
-                    <div id="indexIxicBox" class="flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400">
-                        <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap pointer-events-none">나스닥</span>
-                        <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap pointer-events-none">
-                            <span id="indexIxicVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
-                            <span id="indexIxicChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                    <div id="indexBox2" class="flex flex-col items-center justify-center px-0.5 sm:px-2 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
+                        <div id="indexBox2Animated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
+                            <span id="indexBox2Label" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">나스닥</span>
+                            <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                                <span id="indexBox2Val" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                                <span id="indexBox2Chg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                            </div>
                         </div>
                     </div>
-                    <div id="indexSpxBox" class="flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400">
-                        <span class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap pointer-events-none">S&P 500</span>
-                        <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap pointer-events-none">
-                            <span id="indexSpxVal" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
-                            <span id="indexSpxChg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                    <div id="indexBox3" class="flex flex-col items-center justify-center px-0.5 sm:px-2 py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
+                        <div id="indexBox3Animated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
+                            <span id="indexBox3Label" class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">S&P 500</span>
+                            <div class="flex items-baseline justify-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                                <span id="indexBox3Val" class="text-xs sm:text-sm font-bold text-gray-900 tracking-tight font-mono">-</span>
+                                <span id="indexBox3Chg" class="text-[10px] sm:text-xs font-semibold text-gray-400"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
+                <!-- 우측 수동 다음 버튼 -->
+                <button type="button" id="indexNextBtn" title="다음 지수 그룹 (수동 변경)" aria-label="다음 지수"
+                        class="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-4 h-6 sm:w-5 sm:h-7 flex items-center justify-center rounded bg-white/70 hover:bg-white text-gray-500 hover:text-blue-600 shadow-sm border border-gray-200/80 backdrop-blur-[2px] transition-all cursor-pointer opacity-40 hover:opacity-100 active:scale-90 select-none">
+                    <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
             </div>
 
             <!-- 마우스 호버 / 클릭 미니 추세 차트 팝업 (Popover) -->
@@ -390,9 +426,38 @@
         const macroFxBox = document.getElementById('macroFxBox');
         const macroBondShortBox = document.getElementById('macroBondShortBox');
         const macroBond10yBox = document.getElementById('macroBond10yBox');
-        const indexDjiBox = document.getElementById('indexDjiBox');
-        const indexIxicBox = document.getElementById('indexIxicBox');
-        const indexSpxBox = document.getElementById('indexSpxBox');
+        const macroPrevBtn = document.getElementById('macroPrevBtn');
+        const macroNextBtn = document.getElementById('macroNextBtn');
+        const indexPrevBtn = document.getElementById('indexPrevBtn');
+        const indexNextBtn = document.getElementById('indexNextBtn');
+
+        const indexBox1 = document.getElementById('indexBox1');
+        const indexBox2 = document.getElementById('indexBox2');
+        const indexBox3 = document.getElementById('indexBox3');
+        const indexBox1Animated = document.getElementById('indexBox1Animated');
+        const indexBox2Animated = document.getElementById('indexBox2Animated');
+        const indexBox3Animated = document.getElementById('indexBox3Animated');
+        const indexBox1Label = document.getElementById('indexBox1Label');
+        const indexBox2Label = document.getElementById('indexBox2Label');
+        const indexBox3Label = document.getElementById('indexBox3Label');
+        const indexBox1Val = document.getElementById('indexBox1Val');
+        const indexBox1Chg = document.getElementById('indexBox1Chg');
+        const indexBox2Val = document.getElementById('indexBox2Val');
+        const indexBox2Chg = document.getElementById('indexBox2Chg');
+        const indexBox3Val = document.getElementById('indexBox3Val');
+        const indexBox3Chg = document.getElementById('indexBox3Chg');
+
+        // 기존 변수명 호환성 유지
+        const indexDjiBox = indexBox1;
+        const indexIxicBox = indexBox2;
+        const indexSpxBox = indexBox3;
+        const indexDjiVal = indexBox1Val;
+        const indexDjiChg = indexBox1Chg;
+        const indexIxicVal = indexBox2Val;
+        const indexIxicChg = indexBox2Chg;
+        const indexSpxVal = indexBox3Val;
+        const indexSpxChg = indexBox3Chg;
+
         const stockPriceBox = document.getElementById('stockPriceBox');
         let currentStockLiveQuote = null;
 
@@ -431,12 +496,27 @@
         let currentBondIndex = 0;
         let bondAnimationTimer = null;
 
-        const indexDjiVal = document.getElementById('indexDjiVal');
-        const indexDjiChg = document.getElementById('indexDjiChg');
-        const indexIxicVal = document.getElementById('indexIxicVal');
-        const indexIxicChg = document.getElementById('indexIxicChg');
-        const indexSpxVal = document.getElementById('indexSpxVal');
-        const indexSpxChg = document.getElementById('indexSpxChg');
+        // 지수 그룹 정의 (미국 3대 지수 ↔ 아시아 3대 지수: 코스피, 닛케이, 상해종합)
+        const indexGroups = [
+            {
+                name: '미국 3대 지수',
+                items: [
+                    { key: 'DJI', defaultLabel: '다우존스' },
+                    { key: 'IXIC', defaultLabel: '나스닥' },
+                    { key: 'SPX', defaultLabel: 'S&P 500' }
+                ]
+            },
+            {
+                name: '아시아 3대 지수',
+                items: [
+                    { key: 'KS11', defaultLabel: '코스피' },
+                    { key: 'N225', defaultLabel: '닛케이 225' },
+                    { key: 'SSEC', defaultLabel: '상해종합' }
+                ]
+            }
+        ];
+        let currentIndexGroupIndex = 0;
+        let indexAnimationTimer = null;
         const indexDataMap = {};
 
         // 미니 차트 팝업 요소 및 상태
@@ -888,12 +968,16 @@
             isMacroAnimationPaused = false;
             if (fxAnimationTimer) clearInterval(fxAnimationTimer);
             if (bondAnimationTimer) clearInterval(bondAnimationTimer);
+            if (indexAnimationTimer) clearInterval(indexAnimationTimer);
             fxAnimationTimer = setInterval(() => {
                 if (!isMacroAnimationPaused) rotateFxDisplay();
             }, 3500);
             bondAnimationTimer = setInterval(() => {
                 if (!isMacroAnimationPaused) rotateBondDisplay();
             }, 3500);
+            indexAnimationTimer = setInterval(() => {
+                if (!isMacroAnimationPaused) rotateIndexDisplay();
+            }, 5000);
         }
 
         function pauseMacroRotations() {
@@ -906,6 +990,68 @@
                 clearInterval(bondAnimationTimer);
                 bondAnimationTimer = null;
             }
+            if (indexAnimationTimer) {
+                clearInterval(indexAnimationTimer);
+                indexAnimationTimer = null;
+            }
+        }
+
+        function updateCurrentIndexDisplay(immediate = false) {
+            const grp = indexGroups[currentIndexGroupIndex % indexGroups.length];
+            if (!grp) return;
+
+            const boxEls = [
+                { anim: indexBox1Animated, label: indexBox1Label, val: indexBox1Val, chg: indexBox1Chg, item: grp.items[0] },
+                { anim: indexBox2Animated, label: indexBox2Label, val: indexBox2Val, chg: indexBox2Chg, item: grp.items[1] },
+                { anim: indexBox3Animated, label: indexBox3Label, val: indexBox3Val, chg: indexBox3Chg, item: grp.items[2] }
+            ];
+
+            const applyData = () => {
+                boxEls.forEach(({ label, val, chg, item }) => {
+                    const data = indexDataMap[item.key];
+                    if (label) label.textContent = (data && data.label) ? data.label : item.defaultLabel;
+                    if (data && data.valText && data.valText !== '-') {
+                        renderMacroItem(val, chg, data.valText, data.changeNum, '%');
+                    } else {
+                        renderMacroItem(val, chg, '-', null, '%');
+                    }
+                });
+            };
+
+            if (immediate || !indexBox1Animated) {
+                applyData();
+                return;
+            }
+
+            boxEls.forEach(({ anim }) => {
+                if (!anim) return;
+                anim.style.transition = 'opacity 0.22s ease-out, transform 0.22s ease-out';
+                anim.style.opacity = '0';
+                anim.style.transform = 'translateY(-6px)';
+            });
+
+            setTimeout(() => {
+                applyData();
+                boxEls.forEach(({ anim }) => {
+                    if (!anim) return;
+                    anim.style.transition = 'none';
+                    anim.style.transform = 'translateY(6px)';
+                    void anim.offsetHeight;
+                    anim.style.transition = 'opacity 0.25s ease-in, transform 0.25s ease-in';
+                    anim.style.opacity = '1';
+                    anim.style.transform = 'translateY(0)';
+                });
+            }, 220);
+        }
+
+        function rotateIndexDisplay(direction = 1) {
+            if (isMacroAnimationPaused) return;
+            if (direction >= 0) {
+                currentIndexGroupIndex = (currentIndexGroupIndex + 1) % indexGroups.length;
+            } else {
+                currentIndexGroupIndex = (currentIndexGroupIndex - 1 + indexGroups.length) % indexGroups.length;
+            }
+            updateCurrentIndexDisplay(false);
         }
 
         function updateCurrentFxDisplay(immediate = false) {
@@ -1126,6 +1272,33 @@
                 formatVal: v => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
                 formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
                 getLive: () => indexDataMap['SPX']
+            },
+            KS11: {
+                title: '코스피 지수 (KOSPI)',
+                cnbcSymbol: '.KS11',
+                yahooSymbol: '^KS11',
+                multiplier: 1,
+                formatVal: v => v.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getLive: () => indexDataMap['KS11']
+            },
+            N225: {
+                title: '닛케이 225 (Nikkei 225)',
+                cnbcSymbol: '.N225',
+                yahooSymbol: '^N225',
+                multiplier: 1,
+                formatVal: v => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getLive: () => indexDataMap['N225']
+            },
+            SSEC: {
+                title: '상해 종합 지수 (SSEC)',
+                cnbcSymbol: '.SSEC',
+                yahooSymbol: '000001.SS',
+                multiplier: 1,
+                formatVal: v => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getLive: () => indexDataMap['SSEC']
             }
         };
 
@@ -1313,9 +1486,10 @@
                 const country = bondRotationKeys[currentBondIndex % bondRotationKeys.length];
                 return `${country}_long`;
             }
-            if (boxEl === indexDjiBox) return 'DJI';
-            if (boxEl === indexIxicBox) return 'IXIC';
-            if (boxEl === indexSpxBox) return 'SPX';
+            const grp = indexGroups[currentIndexGroupIndex % indexGroups.length];
+            if (boxEl === indexBox1 && grp) return grp.items[0].key;
+            if (boxEl === indexBox2 && grp) return grp.items[1].key;
+            if (boxEl === indexBox3 && grp) return grp.items[2].key;
             if (boxEl === stockPriceBox && currentStockLiveQuote && currentStockLiveQuote.ticker) {
                 return `STOCK_${currentStockLiveQuote.ticker}`;
             }
@@ -1323,7 +1497,7 @@
         }
 
         function highlightActiveBox(boxEl) {
-            [macroFxBox, macroBondShortBox, macroBond10yBox, indexDjiBox, indexIxicBox, indexSpxBox, stockPriceBox].forEach(el => {
+            [macroFxBox, macroBondShortBox, macroBond10yBox, indexBox1, indexBox2, indexBox3, stockPriceBox].forEach(el => {
                 if (!el) return;
                 if (el === boxEl) {
                     el.classList.add('bg-blue-50', 'ring-2', 'ring-blue-500');
@@ -1672,7 +1846,7 @@
         }
 
         function initMacroPopoverEvents() {
-            const boxes = [macroFxBox, macroBondShortBox, macroBond10yBox, indexDjiBox, indexIxicBox, indexSpxBox, stockPriceBox];
+            const boxes = [macroFxBox, macroBondShortBox, macroBond10yBox, indexBox1, indexBox2, indexBox3, stockPriceBox];
             boxes.forEach(box => {
                 if (!box) return;
                 box.addEventListener('mouseenter', () => {
@@ -1686,6 +1860,50 @@
                     openMacroPopover(box);
                 });
             });
+
+            // 상단 환율/국채 수동 이전/다음 버튼 이벤트
+            if (macroPrevBtn) {
+                macroPrevBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const avail = fxRotationKeys.filter(k => fxDataMap[k]);
+                    if (avail.length > 0) {
+                        currentFxIndex = (currentFxIndex - 1 + avail.length) % avail.length;
+                        updateCurrentFxDisplay(false);
+                    }
+                    currentBondIndex = (currentBondIndex - 1 + bondRotationKeys.length) % bondRotationKeys.length;
+                    updateCurrentBondDisplay(false);
+                    startMacroRotations();
+                });
+            }
+            if (macroNextBtn) {
+                macroNextBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const avail = fxRotationKeys.filter(k => fxDataMap[k]);
+                    if (avail.length > 0) {
+                        currentFxIndex = (currentFxIndex + 1) % avail.length;
+                        updateCurrentFxDisplay(false);
+                    }
+                    currentBondIndex = (currentBondIndex + 1) % bondRotationKeys.length;
+                    updateCurrentBondDisplay(false);
+                    startMacroRotations();
+                });
+            }
+
+            // 하단 지수(미국 ↔ 아시아: 코스피, 닛케이, 상해종합) 수동 이전/다음 버튼 이벤트
+            if (indexPrevBtn) {
+                indexPrevBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    rotateIndexDisplay(-1);
+                    startMacroRotations();
+                });
+            }
+            if (indexNextBtn) {
+                indexNextBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    rotateIndexDisplay(1);
+                    startMacroRotations();
+                });
+            }
 
             if (macroPopover) {
                 macroPopover.addEventListener('mouseenter', () => {
@@ -1740,7 +1958,7 @@
 
             // 1순위: CNBC 실시간 글로벌 마켓 피드 (환율 6종, 국채 6종 [미국/한국/일본], 3대 지수 3종 동시 초고속 조회)
             try {
-                const cnbcUrl = 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=US2Y%7CUS10Y%7CKRW%3D%7C.DXY%7CJPYKRW%3D%7CEURKRW%3D%7CJPY%3D%7CEUR%3D%7CJP2Y%7CJP10Y%7CKR3YT%3DRR%7CKR10Y%7C.DJI%7C.IXIC%7C.SPX&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1';
+                const cnbcUrl = 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=US2Y%7CUS10Y%7CKRW%3D%7C.DXY%7CJPYKRW%3D%7CEURKRW%3D%7CJPY%3D%7CEUR%3D%7CJP2Y%7CJP10Y%7CKR3YT%3DRR%7CKR10Y%7C.DJI%7C.IXIC%7C.SPX%7C.KS11%7C.N225%7C.SSEC&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1';
                 const res = await fetchWithTimeout(cnbcUrl, { timeout: 4500 });
                 if (res.ok) {
                     const json = await res.json();
@@ -1856,18 +2074,24 @@
                             } else if (q.symbol === '.DJI') {
                                 const formatted = lastVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                 indexDataMap['DJI'] = { label: '다우존스', valText: formatted, changeNum: pctVal, rawVal: lastVal, chgVal, pctVal };
-                                renderMacroItem(indexDjiVal, indexDjiChg, formatted, pctVal, '%');
                                 djiLoaded = true;
                             } else if (q.symbol === '.IXIC') {
                                 const formatted = lastVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                 indexDataMap['IXIC'] = { label: '나스닥', valText: formatted, changeNum: pctVal, rawVal: lastVal, chgVal, pctVal };
-                                renderMacroItem(indexIxicVal, indexIxicChg, formatted, pctVal, '%');
                                 ixicLoaded = true;
                             } else if (q.symbol === '.SPX') {
                                 const formatted = lastVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                 indexDataMap['SPX'] = { label: 'S&P 500', valText: formatted, changeNum: pctVal, rawVal: lastVal, chgVal, pctVal };
-                                renderMacroItem(indexSpxVal, indexSpxChg, formatted, pctVal, '%');
                                 spxLoaded = true;
+                            } else if (q.symbol === '.KS11') {
+                                const formatted = lastVal.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                indexDataMap['KS11'] = { label: '코스피', valText: formatted, changeNum: pctVal, rawVal: lastVal, chgVal, pctVal };
+                            } else if (q.symbol === '.N225') {
+                                const formatted = lastVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                indexDataMap['N225'] = { label: '닛케이 225', valText: formatted, changeNum: pctVal, rawVal: lastVal, chgVal, pctVal };
+                            } else if (q.symbol === '.SSEC') {
+                                const formatted = lastVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                indexDataMap['SSEC'] = { label: '상해종합', valText: formatted, changeNum: pctVal, rawVal: lastVal, chgVal, pctVal };
                             }
                         });
                     }
@@ -2055,11 +2279,42 @@
                         const formatted = spxQuote.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                         const diff = spxQuote.prevClose ? (spxQuote.price - spxQuote.prevClose) : 0;
                         indexDataMap['SPX'] = { label: 'S&P 500', valText: formatted, changeNum: spxQuote.changePercent, rawVal: spxQuote.price, chgVal: diff, pctVal: spxQuote.changePercent };
-                        renderMacroItem(indexSpxVal, indexSpxChg, formatted, spxQuote.changePercent, '%');
                         spxLoaded = true;
                     }
                 } catch (e) {}
             }
+
+            // 아시아 지수 누락 시 Yahoo Finance 백업 조회
+            if (!indexDataMap['KS11']) {
+                try {
+                    const q = await fetchYahooQuote('^KS11');
+                    if (q && q.price) {
+                        const formatted = q.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        indexDataMap['KS11'] = { label: '코스피', valText: formatted, changeNum: q.changePercent, rawVal: q.price, chgVal: q.price - (q.prevClose || q.price), pctVal: q.changePercent };
+                    }
+                } catch(e) {}
+            }
+            if (!indexDataMap['N225']) {
+                try {
+                    const q = await fetchYahooQuote('^N225');
+                    if (q && q.price) {
+                        const formatted = q.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        indexDataMap['N225'] = { label: '닛케이 225', valText: formatted, changeNum: q.changePercent, rawVal: q.price, chgVal: q.price - (q.prevClose || q.price), pctVal: q.changePercent };
+                    }
+                } catch(e) {}
+            }
+            if (!indexDataMap['SSEC']) {
+                try {
+                    const q = await fetchYahooQuote('000001.SS');
+                    if (q && q.price) {
+                        const formatted = q.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        indexDataMap['SSEC'] = { label: '상해종합', valText: formatted, changeNum: q.changePercent, rawVal: q.price, chgVal: q.price - (q.prevClose || q.price), pctVal: q.changePercent };
+                    }
+                } catch(e) {}
+            }
+
+            // 지수 표시 즉시 갱신
+            updateCurrentIndexDisplay(true);
 
             if (fxLoaded && fetchedData) {
                 fetchedData.exchangeSource = '실시간 외환시장';
