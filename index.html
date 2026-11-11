@@ -94,12 +94,12 @@
 
         <!-- 실시간 거시경제 지표 & 3대 지수 통합 래퍼 (마우스 호버 미니차트 팝업 포함) -->
         <div id="macroSectionWrapper" class="relative mb-6 md:mb-8">
-            <!-- 실시간 거시경제 지표 위젯 (환율 및 국채, 수동 변경 화살표 버튼 포함) -->
-            <div id="macroWidget" class="relative group w-full bg-gray-50/90 border border-gray-200 rounded-lg px-4 sm:px-6 py-1.5 sm:py-2 mb-2 sm:mb-2.5 shadow-sm">
-                <!-- 좌측 수동 이전 버튼 -->
+            <!-- 실시간 거시경제 지표 위젯 (환율 및 국채, 외곽 플로팅 수동 변경 화살표 버튼 포함) -->
+            <div id="macroWidget" class="relative group w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1.5 py-1.5 sm:px-3 sm:py-2 mb-2 sm:mb-2.5 shadow-sm">
+                <!-- 좌측 수동 이전 버튼 (위젯 테두리 외곽 돌출 플로팅) -->
                 <button type="button" id="macroPrevBtn" title="이전 환율/국채 지표 (수동 변경)" aria-label="이전 지표"
-                        class="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-4 h-6 sm:w-5 sm:h-7 flex items-center justify-center rounded bg-white/70 hover:bg-white text-gray-500 hover:text-blue-600 shadow-sm border border-gray-200/80 backdrop-blur-[2px] transition-all cursor-pointer opacity-40 hover:opacity-100 active:scale-90 select-none">
-                    <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="absolute -left-3 sm:-left-3.5 top-1/2 -translate-y-1/2 z-20 w-6 h-6 flex items-center justify-center rounded-full bg-white/95 hover:bg-white text-gray-600 hover:text-blue-600 shadow-md hover:shadow-lg border border-gray-200/90 backdrop-blur-sm transition-all cursor-pointer opacity-70 hover:opacity-100 hover:scale-110 active:scale-95 select-none">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
                     </svg>
                 </button>
@@ -133,21 +133,21 @@
                         </div>
                     </div>
                 </div>
-                <!-- 우측 수동 다음 버튼 -->
+                <!-- 우측 수동 다음 버튼 (위젯 테두리 외곽 돌출 플로팅) -->
                 <button type="button" id="macroNextBtn" title="다음 환율/국채 지표 (수동 변경)" aria-label="다음 지표"
-                        class="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-4 h-6 sm:w-5 sm:h-7 flex items-center justify-center rounded bg-white/70 hover:bg-white text-gray-500 hover:text-blue-600 shadow-sm border border-gray-200/80 backdrop-blur-[2px] transition-all cursor-pointer opacity-40 hover:opacity-100 active:scale-90 select-none">
-                    <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="absolute -right-3 sm:-right-3.5 top-1/2 -translate-y-1/2 z-20 w-6 h-6 flex items-center justify-center rounded-full bg-white/95 hover:bg-white text-gray-600 hover:text-blue-600 shadow-md hover:shadow-lg border border-gray-200/90 backdrop-blur-sm transition-all cursor-pointer opacity-70 hover:opacity-100 hover:scale-110 active:scale-95 select-none">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
                     </svg>
                 </button>
             </div>
 
-            <!-- 실시간 주요 지수 위젯 (미국 3대 지수 ↔ 아시아 3대 지수: 코스피, 닛케이, 상해종합, 수동 변경 화살표 버튼 포함) -->
-            <div id="indexWidget" class="relative group w-full bg-gray-50/90 border border-gray-200 rounded-lg px-4 sm:px-6 py-1.5 sm:py-2 shadow-sm">
-                <!-- 좌측 수동 이전 버튼 -->
+            <!-- 실시간 주요 지수 위젯 (미국 3대 지수 ↔ 아시아 3대 지수: 코스피, 닛케이, 상해종합, 외곽 플로팅 수동 변경 화살표 버튼 포함) -->
+            <div id="indexWidget" class="relative group w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1.5 py-1.5 sm:px-3 sm:py-2 shadow-sm">
+                <!-- 좌측 수동 이전 버튼 (위젯 테두리 외곽 돌출 플로팅) -->
                 <button type="button" id="indexPrevBtn" title="이전 지수 그룹 (수동 변경)" aria-label="이전 지수"
-                        class="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-4 h-6 sm:w-5 sm:h-7 flex items-center justify-center rounded bg-white/70 hover:bg-white text-gray-500 hover:text-blue-600 shadow-sm border border-gray-200/80 backdrop-blur-[2px] transition-all cursor-pointer opacity-40 hover:opacity-100 active:scale-90 select-none">
-                    <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="absolute -left-3 sm:-left-3.5 top-1/2 -translate-y-1/2 z-20 w-6 h-6 flex items-center justify-center rounded-full bg-white/95 hover:bg-white text-gray-600 hover:text-blue-600 shadow-md hover:shadow-lg border border-gray-200/90 backdrop-blur-sm transition-all cursor-pointer opacity-70 hover:opacity-100 hover:scale-110 active:scale-95 select-none">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
                     </svg>
                 </button>
@@ -181,10 +181,10 @@
                         </div>
                     </div>
                 </div>
-                <!-- 우측 수동 다음 버튼 -->
+                <!-- 우측 수동 다음 버튼 (위젯 테두리 외곽 돌출 플로팅) -->
                 <button type="button" id="indexNextBtn" title="다음 지수 그룹 (수동 변경)" aria-label="다음 지수"
-                        class="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-4 h-6 sm:w-5 sm:h-7 flex items-center justify-center rounded bg-white/70 hover:bg-white text-gray-500 hover:text-blue-600 shadow-sm border border-gray-200/80 backdrop-blur-[2px] transition-all cursor-pointer opacity-40 hover:opacity-100 active:scale-90 select-none">
-                    <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="absolute -right-3 sm:-right-3.5 top-1/2 -translate-y-1/2 z-20 w-6 h-6 flex items-center justify-center rounded-full bg-white/95 hover:bg-white text-gray-600 hover:text-blue-600 shadow-md hover:shadow-lg border border-gray-200/90 backdrop-blur-sm transition-all cursor-pointer opacity-70 hover:opacity-100 hover:scale-110 active:scale-95 select-none">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
                     </svg>
                 </button>
