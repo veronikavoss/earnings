@@ -466,7 +466,7 @@
         const macroFxVal = document.getElementById('macroFxVal');
         const macroFxChg = document.getElementById('macroFxChg');
         const fxDataMap = {};
-        const fxRotationKeys = ['USDKRW', 'DXY', 'JPYKRW', 'EURKRW', 'USDJPY', 'EURUSD'];
+        const fxRotationKeys = ['USDKRW', 'DXY', 'JPYKRW', 'EURKRW', 'USDJPY', 'USDEUR'];
         let currentFxIndex = 0;
         let fxAnimationTimer = null;
 
@@ -1182,14 +1182,14 @@
                 formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
                 getLive: () => fxDataMap['USDJPY']
             },
-            EURUSD: {
-                title: '유로 / 달러 (EUR/USD)',
-                cnbcSymbol: 'EUR=',
-                yahooSymbol: 'EURUSD=X',
+            USDEUR: {
+                title: '달러 / 유로 (USD/EUR)',
+                cnbcSymbol: 'USDEUR=',
+                yahooSymbol: 'USDEUR=X',
                 multiplier: 1,
-                formatVal: v => v.toFixed(4) + '$',
-                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(4)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
-                getLive: () => fxDataMap['EURUSD']
+                formatVal: v => v.toFixed(4) + '€',
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(4)}€ (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getLive: () => fxDataMap['USDEUR']
             },
             US_short: {
                 title: '미국 국채 2년 (US 2Y)',
@@ -1958,7 +1958,7 @@
 
             // 1순위: CNBC 실시간 글로벌 마켓 피드 (환율 6종, 국채 6종 [미국/한국/일본], 3대 지수 3종 동시 초고속 조회)
             try {
-                const cnbcUrl = 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=US2Y%7CUS10Y%7CKRW%3D%7C.DXY%7CJPYKRW%3D%7CEURKRW%3D%7CJPY%3D%7CEUR%3D%7CJP2Y%7CJP10Y%7CKR3YT%3DRR%7CKR10Y%7C.DJI%7C.IXIC%7C.SPX%7C.KS11%7C.N225%7C.SSEC&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1';
+                const cnbcUrl = 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=US2Y%7CUS10Y%7CKRW%3D%7C.DXY%7CJPYKRW%3D%7CEURKRW%3D%7CJPY%3D%7CUSDEUR%3D%7CJP2Y%7CJP10Y%7CKR3YT%3DRR%7CKR10Y%7C.DJI%7C.IXIC%7C.SPX%7C.KS11%7C.N225%7C.SSEC&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json&events=1';
                 const res = await fetchWithTimeout(cnbcUrl, { timeout: 4500 });
                 if (res.ok) {
                     const json = await res.json();
@@ -2023,14 +2023,18 @@
                                     pctVal,
                                     suffix: '%'
                                 };
-                            } else if (q.symbol === 'EUR=') {
-                                fxDataMap['EURUSD'] = {
-                                    label: '유로/달러 (EUR/USD)',
-                                    valText: lastVal.toFixed(4) + '$',
-                                    changeNum: pctVal,
-                                    rawVal: lastVal,
-                                    chgVal,
-                                    pctVal,
+                            } else if (q.symbol === 'USDEUR=' || q.symbol === 'EUR=') {
+                                const isDirect = (q.symbol === 'USDEUR=');
+                                const finalVal = isDirect ? lastVal : (lastVal > 0 ? (1 / lastVal) : 0);
+                                const finalPct = isDirect ? pctVal : -pctVal;
+                                const finalChg = isDirect ? chgVal : (isDirect ? 0 : 0);
+                                fxDataMap['USDEUR'] = {
+                                    label: '달러/유로 (USD/EUR)',
+                                    valText: finalVal.toFixed(4) + '€',
+                                    changeNum: finalPct,
+                                    rawVal: finalVal,
+                                    chgVal: finalChg,
+                                    pctVal: finalPct,
                                     suffix: '%'
                                 };
                             } else if (q.symbol === 'US2Y') {
@@ -2193,20 +2197,35 @@
                 } catch (e) {}
             }
 
-            if (!fxDataMap['EURUSD']) {
+            if (!fxDataMap['USDEUR']) {
                 try {
-                    const eurQuote = await fetchYahooQuote('EURUSD=X');
+                    const eurQuote = await fetchYahooQuote('USDEUR=X');
                     if (eurQuote && eurQuote.price) {
                         const diff = eurQuote.prevClose ? (eurQuote.price - eurQuote.prevClose) : 0;
-                        fxDataMap['EURUSD'] = {
-                            label: '유로/달러 (EUR/USD)',
-                            valText: eurQuote.price.toFixed(4) + '$',
+                        fxDataMap['USDEUR'] = {
+                            label: '달러/유로 (USD/EUR)',
+                            valText: eurQuote.price.toFixed(4) + '€',
                             changeNum: eurQuote.changePercent,
                             rawVal: eurQuote.price,
                             chgVal: diff,
                             pctVal: eurQuote.changePercent,
                             suffix: '%'
                         };
+                    } else {
+                        // EURUSD=X로 역산 백업
+                        const invQuote = await fetchYahooQuote('EURUSD=X');
+                        if (invQuote && invQuote.price && invQuote.price > 0) {
+                            const invP = 1 / invQuote.price;
+                            fxDataMap['USDEUR'] = {
+                                label: '달러/유로 (USD/EUR)',
+                                valText: invP.toFixed(4) + '€',
+                                changeNum: -invQuote.changePercent,
+                                rawVal: invP,
+                                chgVal: 0,
+                                pctVal: -invQuote.changePercent,
+                                suffix: '%'
+                            };
+                        }
                     }
                 } catch (e) {}
             }
