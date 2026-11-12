@@ -95,10 +95,10 @@
         <!-- 실시간 거시경제 지표 & 3대 지수 통합 래퍼 (마우스 호버 미니차트 팝업 포함) -->
         <div id="macroSectionWrapper" class="relative mb-6 md:mb-8">
             <!-- 실시간 거시경제 지표 위젯 (환율 및 국채, 외곽 플로팅 수동 변경 화살표 버튼 포함) -->
-            <div id="macroWidget" class="relative group w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1 py-1 sm:px-3 sm:py-2 mb-2 sm:mb-2.5 shadow-sm">
+            <div id="macroWidget" class="relative group w-full bg-gray-50/90 border border-gray-200 rounded-lg px-0.5 py-1 sm:px-3 sm:py-2 mb-2 sm:mb-2.5 shadow-sm">
                 <!-- 좌측 수동 이전 버튼 (위젯 테두리 외곽 돌출 플로팅) -->
                 <button type="button" id="macroPrevBtn" title="이전 환율/국채 지표 (수동 변경)" aria-label="이전 지표"
-                        class="absolute -left-2 sm:-left-3.5 top-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-white/40 hover:bg-white text-gray-500 hover:text-blue-600 shadow-none hover:shadow-md border border-gray-200/40 hover:border-gray-200 backdrop-blur-sm transition-all cursor-pointer opacity-35 hover:opacity-100 hover:scale-110 active:scale-95 select-none">
+                        class="absolute -left-2.5 sm:-left-3.5 top-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-white/95 hover:bg-white text-gray-600 hover:text-blue-600 shadow-sm hover:shadow-md border border-gray-200/90 backdrop-blur-sm transition-all cursor-pointer opacity-65 hover:opacity-100 hover:scale-110 active:scale-95 select-none">
                     <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
                     </svg>
@@ -107,35 +107,35 @@
                 <div class="grid grid-cols-3 divide-x divide-gray-200 items-center">
                     <div id="macroFxBox" class="flex flex-col items-center justify-center px-0 sm:px-2 py-0.5 sm:py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
                         <div id="macroFxAnimated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
-                            <span id="macroFxLabel" class="text-[10px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">실시간 환율 (USD/KRW)</span>
+                            <span id="macroFxLabel" class="text-[9.5px] min-[390px]:text-[10.5px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">환율 (USD/KRW)</span>
                             <div class="flex items-baseline justify-center gap-0.5 sm:gap-1.5 whitespace-nowrap">
-                                <span id="macroFxVal" class="text-[10px] min-[390px]:text-[11.5px] sm:text-sm font-bold text-gray-900 tracking-tighter sm:tracking-tight font-mono">-</span>
-                                <span id="macroFxChg" class="text-[8.5px] min-[390px]:text-[9.5px] sm:text-xs font-semibold text-gray-400"></span>
+                                <span id="macroFxVal" class="text-[9.5px] min-[390px]:text-[11px] sm:text-sm font-bold text-gray-900 tracking-tighter sm:tracking-tight font-mono">-</span>
+                                <span id="macroFxChg" class="text-[8px] min-[390px]:text-[9px] sm:text-xs font-semibold text-gray-400"></span>
                             </div>
                         </div>
                     </div>
                     <div id="macroBondShortBox" class="flex flex-col items-center justify-center px-0 sm:px-2 py-0.5 sm:py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
                         <div id="macroBondShortAnimated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
-                            <span id="macroBondShortLabel" class="text-[10px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 2년</span>
+                            <span id="macroBondShortLabel" class="text-[9.5px] min-[390px]:text-[10.5px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 2년</span>
                             <div class="flex items-baseline justify-center gap-0.5 sm:gap-1.5 whitespace-nowrap">
-                                <span id="macroUs2yVal" class="text-[10px] min-[390px]:text-[11.5px] sm:text-sm font-bold text-gray-900 tracking-tighter sm:tracking-tight font-mono">-</span>
-                                <span id="macroUs2yChg" class="text-[8.5px] min-[390px]:text-[9.5px] sm:text-xs font-semibold text-gray-400"></span>
+                                <span id="macroUs2yVal" class="text-[9.5px] min-[390px]:text-[11px] sm:text-sm font-bold text-gray-900 tracking-tighter sm:tracking-tight font-mono">-</span>
+                                <span id="macroUs2yChg" class="text-[8px] min-[390px]:text-[9px] sm:text-xs font-semibold text-gray-400"></span>
                             </div>
                         </div>
                     </div>
                     <div id="macroBond10yBox" class="flex flex-col items-center justify-center px-0 sm:px-2 py-0.5 sm:py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
                         <div id="macroBond10yAnimated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
-                            <span id="macroBond10yLabel" class="text-[10px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 10년</span>
+                            <span id="macroBond10yLabel" class="text-[9.5px] min-[390px]:text-[10.5px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">미국 국채 10년</span>
                             <div class="flex items-baseline justify-center gap-0.5 sm:gap-1.5 whitespace-nowrap">
-                                <span id="macroUs10yVal" class="text-[10px] min-[390px]:text-[11.5px] sm:text-sm font-bold text-gray-900 tracking-tighter sm:tracking-tight font-mono">-</span>
-                                <span id="macroUs10yChg" class="text-[8.5px] min-[390px]:text-[9.5px] sm:text-xs font-semibold text-gray-400"></span>
+                                <span id="macroUs10yVal" class="text-[9.5px] min-[390px]:text-[11px] sm:text-sm font-bold text-gray-900 tracking-tighter sm:tracking-tight font-mono">-</span>
+                                <span id="macroUs10yChg" class="text-[8px] min-[390px]:text-[9px] sm:text-xs font-semibold text-gray-400"></span>
                             </div>
                         </div>
                     </div>
                 </div>
                 <!-- 우측 수동 다음 버튼 (위젯 테두리 외곽 돌출 플로팅) -->
                 <button type="button" id="macroNextBtn" title="다음 환율/국채 지표 (수동 변경)" aria-label="다음 지표"
-                        class="absolute -right-2 sm:-right-3.5 top-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-white/40 hover:bg-white text-gray-500 hover:text-blue-600 shadow-none hover:shadow-md border border-gray-200/40 hover:border-gray-200 backdrop-blur-sm transition-all cursor-pointer opacity-35 hover:opacity-100 hover:scale-110 active:scale-95 select-none">
+                        class="absolute -right-2.5 sm:-right-3.5 top-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-white/95 hover:bg-white text-gray-600 hover:text-blue-600 shadow-sm hover:shadow-md border border-gray-200/90 backdrop-blur-sm transition-all cursor-pointer opacity-65 hover:opacity-100 hover:scale-110 active:scale-95 select-none">
                     <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
                     </svg>
@@ -143,10 +143,10 @@
             </div>
 
             <!-- 실시간 주요 지수 위젯 (미국 3대 지수 ↔ 아시아 3대 지수 ↔ 원자재 & 암호화폐, 외곽 플로팅 수동 변경 화살표 버튼 포함) -->
-            <div id="indexWidget" class="relative group w-full bg-gray-50/90 border border-gray-200 rounded-lg px-1 py-1 sm:px-3 sm:py-2 shadow-sm">
+            <div id="indexWidget" class="relative group w-full bg-gray-50/90 border border-gray-200 rounded-lg px-0.5 py-1 sm:px-3 sm:py-2 shadow-sm">
                 <!-- 좌측 수동 이전 버튼 (위젯 테두리 외곽 돌출 플로팅) -->
                 <button type="button" id="indexPrevBtn" title="이전 지수 그룹 (수동 변경)" aria-label="이전 지수"
-                        class="absolute -left-2 sm:-left-3.5 top-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-white/40 hover:bg-white text-gray-500 hover:text-blue-600 shadow-none hover:shadow-md border border-gray-200/40 hover:border-gray-200 backdrop-blur-sm transition-all cursor-pointer opacity-35 hover:opacity-100 hover:scale-110 active:scale-95 select-none">
+                        class="absolute -left-2.5 sm:-left-3.5 top-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-white/95 hover:bg-white text-gray-600 hover:text-blue-600 shadow-sm hover:shadow-md border border-gray-200/90 backdrop-blur-sm transition-all cursor-pointer opacity-65 hover:opacity-100 hover:scale-110 active:scale-95 select-none">
                     <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
                     </svg>
@@ -155,35 +155,35 @@
                 <div class="grid grid-cols-3 divide-x divide-gray-200 items-center">
                     <div id="indexBox1" class="flex flex-col items-center justify-center px-0 sm:px-2 py-0.5 sm:py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
                         <div id="indexBox1Animated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
-                            <span id="indexBox1Label" class="text-[10px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">다우존스</span>
+                            <span id="indexBox1Label" class="text-[9.5px] min-[390px]:text-[10.5px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">다우존스</span>
                             <div class="flex items-baseline justify-center gap-0.5 sm:gap-1.5 whitespace-nowrap">
-                                <span id="indexBox1Val" class="text-[10px] min-[390px]:text-[11.5px] sm:text-sm font-bold text-gray-900 tracking-tighter sm:tracking-tight font-mono">-</span>
-                                <span id="indexBox1Chg" class="text-[8.5px] min-[390px]:text-[9.5px] sm:text-xs font-semibold text-gray-400"></span>
+                                <span id="indexBox1Val" class="text-[9.5px] min-[390px]:text-[11px] sm:text-sm font-bold text-gray-900 tracking-tighter sm:tracking-tight font-mono">-</span>
+                                <span id="indexBox1Chg" class="text-[8px] min-[390px]:text-[9px] sm:text-xs font-semibold text-gray-400"></span>
                             </div>
                         </div>
                     </div>
                     <div id="indexBox2" class="flex flex-col items-center justify-center px-0 sm:px-2 py-0.5 sm:py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
                         <div id="indexBox2Animated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
-                            <span id="indexBox2Label" class="text-[10px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">나스닥</span>
+                            <span id="indexBox2Label" class="text-[9.5px] min-[390px]:text-[10.5px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">나스닥</span>
                             <div class="flex items-baseline justify-center gap-0.5 sm:gap-1.5 whitespace-nowrap">
-                                <span id="indexBox2Val" class="text-[10px] min-[390px]:text-[11.5px] sm:text-sm font-bold text-gray-900 tracking-tighter sm:tracking-tight font-mono">-</span>
-                                <span id="indexBox2Chg" class="text-[8.5px] min-[390px]:text-[9.5px] sm:text-xs font-semibold text-gray-400"></span>
+                                <span id="indexBox2Val" class="text-[9.5px] min-[390px]:text-[11px] sm:text-sm font-bold text-gray-900 tracking-tighter sm:tracking-tight font-mono">-</span>
+                                <span id="indexBox2Chg" class="text-[8px] min-[390px]:text-[9px] sm:text-xs font-semibold text-gray-400"></span>
                             </div>
                         </div>
                     </div>
                     <div id="indexBox3" class="flex flex-col items-center justify-center px-0 sm:px-2 py-0.5 sm:py-1 rounded-md cursor-pointer transition-all duration-150 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-400 overflow-hidden">
                         <div id="indexBox3Animated" class="flex flex-col items-center justify-center transition-all duration-300 pointer-events-none">
-                            <span id="indexBox3Label" class="text-[10px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">S&P 500</span>
+                            <span id="indexBox3Label" class="text-[9.5px] min-[390px]:text-[10.5px] sm:text-xs text-gray-500 font-medium leading-tight mb-0.5 whitespace-nowrap">S&P 500</span>
                             <div class="flex items-baseline justify-center gap-0.5 sm:gap-1.5 whitespace-nowrap">
-                                <span id="indexBox3Val" class="text-[10px] min-[390px]:text-[11.5px] sm:text-sm font-bold text-gray-900 tracking-tighter sm:tracking-tight font-mono">-</span>
-                                <span id="indexBox3Chg" class="text-[8.5px] min-[390px]:text-[9.5px] sm:text-xs font-semibold text-gray-400"></span>
+                                <span id="indexBox3Val" class="text-[9.5px] min-[390px]:text-[11px] sm:text-sm font-bold text-gray-900 tracking-tighter sm:tracking-tight font-mono">-</span>
+                                <span id="indexBox3Chg" class="text-[8px] min-[390px]:text-[9px] sm:text-xs font-semibold text-gray-400"></span>
                             </div>
                         </div>
                     </div>
                 </div>
                 <!-- 우측 수동 다음 버튼 (위젯 테두리 외곽 돌출 플로팅) -->
                 <button type="button" id="indexNextBtn" title="다음 지수 그룹 (수동 변경)" aria-label="다음 지수"
-                        class="absolute -right-2 sm:-right-3.5 top-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-white/40 hover:bg-white text-gray-500 hover:text-blue-600 shadow-none hover:shadow-md border border-gray-200/40 hover:border-gray-200 backdrop-blur-sm transition-all cursor-pointer opacity-35 hover:opacity-100 hover:scale-110 active:scale-95 select-none">
+                        class="absolute -right-2.5 sm:-right-3.5 top-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-white/95 hover:bg-white text-gray-600 hover:text-blue-600 shadow-sm hover:shadow-md border border-gray-200/90 backdrop-blur-sm transition-all cursor-pointer opacity-65 hover:opacity-100 hover:scale-110 active:scale-95 select-none">
                     <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
                     </svg>
@@ -2008,7 +2008,7 @@
                             if (q.symbol === 'KRW=') {
                                 usdToKrwRate = lastVal;
                                 fxDataMap['USDKRW'] = {
-                                    label: '실시간 환율 (USD/KRW)',
+                                    label: '환율 (USD/KRW)',
                                     valText: lastVal.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
                                     changeNum: pctVal,
                                     rawVal: lastVal,
@@ -2147,7 +2147,7 @@
                         usdToKrwRate = fxQuote.price;
                         const diff = fxQuote.prevClose ? (fxQuote.price - fxQuote.prevClose) : 0;
                         fxDataMap['USDKRW'] = {
-                            label: '실시간 환율 (USD/KRW)',
+                            label: '환율 (USD/KRW)',
                             valText: fxQuote.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '원',
                             changeNum: fxQuote.changePercent,
                             rawVal: fxQuote.price,
