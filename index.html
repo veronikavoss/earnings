@@ -517,7 +517,7 @@
             {
                 name: '원자재 & 암호화폐',
                 items: [
-                    { key: 'GOLD', defaultLabel: '금 (Gold)' },
+                    { key: 'GOLD', defaultLabel: '금 (1돈)' },
                     { key: 'WTI', defaultLabel: 'WTI 원유' },
                     { key: 'BTC', defaultLabel: '비트코인' }
                 ]
@@ -1309,12 +1309,12 @@
                 getLive: () => indexDataMap['SSEC']
             },
             GOLD: {
-                title: '국제 금 선물 (Gold)',
+                title: '국제 금 시세 (1돈 / 3.75g)',
                 cnbcSymbol: '@GC.1',
                 yahooSymbol: 'GC=F',
-                multiplier: 1,
-                formatVal: v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} $${Math.abs(chg).toFixed(2)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
+                getMultiplier: () => (3.75 / 31.1034768) * (usdToKrwRate || 1400),
+                formatVal: v => Math.round(v).toLocaleString('ko-KR') + '원',
+                formatDiff: (chg, pct) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.round(Math.abs(chg)).toLocaleString('ko-KR')}원 (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)`,
                 getLive: () => indexDataMap['GOLD']
             },
             WTI: {
@@ -1393,7 +1393,7 @@
             const meta = getMacroItemMeta(itemKey);
             if (!meta) return null;
             const pCfg = PERIOD_CONFIG[period] || PERIOD_CONFIG['1m'];
-            const mult = meta.multiplier || 1;
+            const mult = (typeof meta.getMultiplier === 'function' ? meta.getMultiplier() : meta.multiplier) || 1;
 
             let points = [];
             // 1순위: CNBC ts-api (CORS * 지원, 초고속, 일봉 OHLC 포함)
@@ -2367,14 +2367,17 @@
                 } catch(e) {}
             }
 
-            // 원자재 & 암호화폐 (금, WTI 원유, 비트코인) 실시간 데이터 조회 (CNBC ts-api & Yahoo Finance 백업)
+            // 원자재 & 암호화폐 (금 1돈, WTI 원유, 비트코인) 실시간 데이터 조회 (CNBC ts-api & Yahoo Finance 백업)
             try {
+                const goldDonScale = () => (3.75 / 31.1034768) * (usdToKrwRate || 1400);
                 const commodityDefs = [
-                    { key: 'GOLD', sym: '@GC.1', yahooSym: 'GC=F', label: '금 (Gold)', format: v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-                    { key: 'WTI', sym: '@CL.1', yahooSym: 'CL=F', label: 'WTI 원유', format: v => '$' + v.toFixed(2) },
-                    { key: 'BTC', sym: 'BTC=', yahooSym: 'BTC-USD', label: '비트코인', format: v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+                    { key: 'GOLD', sym: '@GC.1', yahooSym: 'GC=F', label: '금 (1돈)', getScale: goldDonScale, format: v => Math.round(v).toLocaleString('ko-KR') + '원' },
+                    { key: 'WTI', sym: '@CL.1', yahooSym: 'CL=F', label: 'WTI 원유', getScale: () => 1, format: v => '$' + v.toFixed(2) },
+                    { key: 'BTC', sym: 'BTC=', yahooSym: 'BTC-USD', label: '비트코인', getScale: () => 1, format: v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
                 ];
-                await Promise.all(commodityDefs.map(async ({ key, sym, yahooSym, label, format }) => {
+                Object.keys(macroHistoryCache).forEach(ck => { if (ck.startsWith('GOLD_')) delete macroHistoryCache[ck]; });
+                await Promise.all(commodityDefs.map(async ({ key, sym, yahooSym, label, getScale, format }) => {
+                    const scale = getScale();
                     let loaded = false;
                     try {
                         const end = new Date();
@@ -2392,13 +2395,15 @@
                                 const lastVal = parseFloat(lastBar.close);
                                 const prevVal = parseFloat(prevBar.close);
                                 if (!isNaN(lastVal) && !isNaN(prevVal) && prevVal > 0) {
-                                    const chgVal = lastVal - prevVal;
-                                    const pctVal = (chgVal / prevVal) * 100;
+                                    const scaledLast = lastVal * scale;
+                                    const scaledPrev = prevVal * scale;
+                                    const chgVal = scaledLast - scaledPrev;
+                                    const pctVal = (chgVal / scaledPrev) * 100;
                                     indexDataMap[key] = {
                                         label,
-                                        valText: format(lastVal),
+                                        valText: format(scaledLast),
                                         changeNum: pctVal,
-                                        rawVal: lastVal,
+                                        rawVal: scaledLast,
                                         chgVal,
                                         pctVal
                                     };
@@ -2412,12 +2417,14 @@
                         try {
                             const q = await fetchYahooQuote(yahooSym);
                             if (q && q.price) {
-                                const diff = q.prevClose ? (q.price - q.prevClose) : 0;
+                                const scaledPrice = q.price * scale;
+                                const scaledPrev = (q.prevClose || q.price) * scale;
+                                const diff = scaledPrice - scaledPrev;
                                 indexDataMap[key] = {
                                     label,
-                                    valText: format(q.price),
+                                    valText: format(scaledPrice),
                                     changeNum: q.changePercent,
-                                    rawVal: q.price,
+                                    rawVal: scaledPrice,
                                     chgVal: diff,
                                     pctVal: q.changePercent
                                 };
