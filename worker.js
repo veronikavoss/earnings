@@ -408,6 +408,171 @@ async function handleSecApi(request, env) {
     }
 }
 
+// 2. 한·미·일 공식 기준금리(정책금리) 실시간 & 1년 시계열 통합 API
+async function fetchPolicyRatesData() {
+    const start = new Date();
+    start.setFullYear(start.getFullYear() - 1);
+    const startStr = start.toISOString().slice(0, 10);
+
+    const [nyRes, bisRes, bokRes] = await Promise.allSettled([
+        fetch('https://markets.newyorkfed.org/api/rates/unsecured/effr/last/260.json', {
+            headers: { 'Accept': 'application/json', 'User-Agent': 'EarningsViewer/1.0' }
+        }).then(r => r.ok ? r.json() : null),
+        fetch(`https://stats.bis.org/api/v2/data/dataflow/BIS/WS_CBPOL/1.0/D.JP+KR?startPeriod=${startStr}&format=csv`, {
+            headers: { 'Accept': 'text/csv', 'User-Agent': 'EarningsViewer/1.0' }
+        }).then(r => r.ok ? r.text() : null),
+        fetch('https://www.bok.or.kr/portal/main/main.do', {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; EarningsViewer/1.0)' }
+        }).then(r => r.ok ? r.text() : null)
+    ]);
+
+    const history = { US: [], JP: [], KR: [] };
+    const rates = {};
+
+    // Helper: 시계열에서 직전 금리 변경폭과 최근 변경일 계산
+    function summarizeSeries(series, isWithinDays = 7) {
+        if (!series || series.length === 0) return null;
+        const latest = series[series.length - 1];
+        let prevDistinctVal = latest.value;
+        let lastChangeDate = latest.date;
+        for (let i = series.length - 2; i >= 0; i--) {
+            if (Math.abs(series[i].value - latest.value) > 1e-6) {
+                prevDistinctVal = series[i].value;
+                lastChangeDate = series[i + 1].date;
+                break;
+            }
+        }
+        const decisionDiff = Number((latest.value - prevDistinctVal).toFixed(4));
+        const ageDays = (Date.now() - new Date(lastChangeDate + 'T00:00:00Z').getTime()) / (1000 * 60 * 60 * 24);
+        const recentDiff = (Math.abs(decisionDiff) > 1e-6 && ageDays <= isWithinDays) ? decisionDiff : null;
+        return { latest, decisionDiff, recentDiff, lastChangeDate };
+    }
+
+    // 1) 미국 연준 기준금리 (NY Fed 공식 EFFR / Target Range)
+    if (nyRes.status === 'fulfilled' && nyRes.value && Array.isArray(nyRes.value.refRates)) {
+        const list = nyRes.value.refRates
+            .filter(r => r.effectiveDate && (r.targetRateFrom != null || r.percentRate != null))
+            .sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
+
+        history.US = list.map(r => {
+            const hasRange = r.targetRateFrom != null && r.targetRateTo != null;
+            const mid = hasRange ? (Number(r.targetRateFrom) + Number(r.targetRateTo)) / 2 : Number(r.percentRate);
+            return {
+                date: r.effectiveDate,
+                dateStr: r.effectiveDate.replace(/-/g, ''),
+                value: Number(mid.toFixed(4)),
+                min: r.targetRateFrom != null ? Number(r.targetRateFrom) : mid,
+                max: r.targetRateTo != null ? Number(r.targetRateTo) : mid
+            };
+        });
+
+        const sum = summarizeSeries(history.US);
+        if (sum) {
+            const { latest, decisionDiff, recentDiff } = sum;
+            const valText = (latest.min !== latest.max)
+                ? `${latest.min.toFixed(2)}~${latest.max.toFixed(2)}%`
+                : `${latest.value.toFixed(2)}%`;
+            rates.US = {
+                label: '미국 기준금리',
+                valText,
+                rawVal: latest.value,
+                chgVal: decisionDiff,
+                changeNum: recentDiff,
+                effectiveDate: latest.date
+            };
+        }
+    }
+
+    // 2) 일본 · 한국 기준금리 (BIS WS_CBPOL 1년 일별 시계열)
+    if (bisRes.status === 'fulfilled' && typeof bisRes.value === 'string') {
+        const parsed = { JP: [], KR: [] };
+        for (const line of bisRes.value.split(/\r?\n/)) {
+            const m = line.match(/^D,(JP|KR),.*,(\d{4}-\d{2}-\d{2}),(-?\d+(?:\.\d+)?),/);
+            if (m) {
+                const v = parseFloat(m[3]);
+                if (!isNaN(v)) {
+                    parsed[m[1]].push({
+                        date: m[2],
+                        dateStr: m[2].replace(/-/g, ''),
+                        value: v
+                    });
+                }
+            }
+        }
+        history.JP = parsed.JP.sort((a, b) => a.date.localeCompare(b.date));
+        history.KR = parsed.KR.sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    // 3) 한국은행(BOK) 공식 메인 페이지 실시간 기준금리 보정 (금통위 당일 발표 즉시 반영)
+    if (bokRes.status === 'fulfilled' && typeof bokRes.value === 'string') {
+        const bokMatch = bokRes.value.match(/기준금리<\/strong>\s*<span[^>]*>\s*<span[^>]*>\s*<em>([0-9.]+)<\/em>/i);
+        if (bokMatch) {
+            const liveKr = parseFloat(bokMatch[1]);
+            if (!isNaN(liveKr)) {
+                const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+                const todayStr = kstNow.toISOString().slice(0, 10);
+                const lastPt = history.KR[history.KR.length - 1];
+                if (!lastPt || Math.abs(lastPt.value - liveKr) > 1e-6 || lastPt.date < todayStr) {
+                    if (lastPt && lastPt.date === todayStr) {
+                        lastPt.value = liveKr;
+                    } else {
+                        history.KR.push({
+                            date: todayStr,
+                            dateStr: todayStr.replace(/-/g, ''),
+                            value: liveKr
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    const jpSum = summarizeSeries(history.JP);
+    if (jpSum) {
+        rates.JP = {
+            label: '일본 기준금리',
+            valText: `${jpSum.latest.value.toFixed(2)}%`,
+            rawVal: jpSum.latest.value,
+            chgVal: jpSum.decisionDiff,
+            changeNum: jpSum.recentDiff,
+            effectiveDate: jpSum.latest.date
+        };
+    }
+
+    const krSum = summarizeSeries(history.KR);
+    if (krSum) {
+        rates.KR = {
+            label: '한국 기준금리',
+            valText: `${krSum.latest.value.toFixed(2)}%`,
+            rawVal: krSum.latest.value,
+            chgVal: krSum.decisionDiff,
+            changeNum: krSum.recentDiff,
+            effectiveDate: krSum.latest.date
+        };
+    }
+
+    return { ok: true, rates, history };
+}
+
+async function handlePolicyRatesApi() {
+    try {
+        const data = await fetchPolicyRatesData();
+        return new Response(JSON.stringify(data), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'public, max-age=1800, s-maxage=1800'
+            }
+        });
+    } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message || '기준금리 조회 오류' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
+        });
+    }
+}
+
 export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
@@ -427,6 +592,11 @@ export default {
         // 1. /api/sec 요청 처리
         if (url.pathname === '/api/sec') {
             return handleSecApi(request, env);
+        }
+
+        // 1-2. /api/policy-rates 요청 처리 (한·미·일 기준금리)
+        if (url.pathname === '/api/policy-rates') {
+            return handlePolicyRatesApi();
         }
 
         // 2. /api/status 상태 확인

@@ -501,6 +501,12 @@
                 long: { label: '일본 국채 10년', valText: '-', changeNum: null, rawVal: null, pctVal: null }
             }
         };
+        const policyRateDataMap = {
+            US: { label: '미국 기준금리', valText: '-', changeNum: null, chgVal: 0, rawVal: null },
+            JP: { label: '일본 기준금리', valText: '-', changeNum: null, chgVal: 0, rawVal: null },
+            KR: { label: '한국 기준금리', valText: '-', changeNum: null, chgVal: 0, rawVal: null }
+        };
+        const policyRateHistoryMap = {};
         const bondRotationKeys = ['US', 'KR', 'JP'];
         let currentBondIndex = 0;
         let bondAnimationTimer = null;
@@ -1097,6 +1103,11 @@
                 { key: 'USDEUR', defaultLabel: '달러/유로 (USD/EUR)' }
             ],
             [
+                { key: 'US_policy', defaultLabel: '미국 기준금리' },
+                { key: 'JP_policy', defaultLabel: '일본 기준금리' },
+                { key: 'KR_policy', defaultLabel: '한국 기준금리' }
+            ],
+            [
                 { key: 'US_short', defaultLabel: '미국 국채 2년' },
                 { key: 'JP_short', defaultLabel: '일본 국채 2년' },
                 { key: 'KR_short', defaultLabel: '한국 국채 3년' }
@@ -1139,6 +1150,11 @@
 
         function getLiveMacroDataByKey(key) {
             if (fxDataMap[key]) return { data: fxDataMap[key], suffix: fxDataMap[key].suffix || '%' };
+            if (key.endsWith('_policy')) {
+                const country = key.split('_')[0];
+                const p = policyRateDataMap[country];
+                return p ? { data: p, suffix: '%p' } : null;
+            }
             if (key.endsWith('_short') || key.endsWith('_long')) {
                 const [country, term] = key.split('_');
                 const b = bondDataMap[country]?.[term];
@@ -1373,6 +1389,30 @@
                 formatDiff: (chg) => `${chg > 0 ? '▲' : chg < 0 ? '▼' : '-'} ${Math.abs(chg).toFixed(2)}%p`,
                 getLive: () => bondDataMap.JP.long
             },
+            US_policy: {
+                title: '미국 기준금리 (Fed Funds Rate)',
+                isPolicyRate: true,
+                country: 'US',
+                formatVal: v => (Math.round(v * 8) % 2 === 1) ? `${(v - 0.125).toFixed(2)}~${(v + 0.125).toFixed(2)}%` : `${v.toFixed(2)}%`,
+                formatDiff: (chg) => Math.abs(chg) > 1e-6 ? `${chg > 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(2)}%p (직전 결정 대비)` : '현행 유지 (0.00%p)',
+                getLive: () => policyRateDataMap.US
+            },
+            JP_policy: {
+                title: '일본 기준금리 (BOJ 정책금리)',
+                isPolicyRate: true,
+                country: 'JP',
+                formatVal: v => v.toFixed(2) + '%',
+                formatDiff: (chg) => Math.abs(chg) > 1e-6 ? `${chg > 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(2)}%p (직전 결정 대비)` : '현행 유지 (0.00%p)',
+                getLive: () => policyRateDataMap.JP
+            },
+            KR_policy: {
+                title: '한국 기준금리 (한국은행)',
+                isPolicyRate: true,
+                country: 'KR',
+                formatVal: v => v.toFixed(2) + '%',
+                formatDiff: (chg) => Math.abs(chg) > 1e-6 ? `${chg > 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(2)}%p (직전 결정 대비)` : '현행 유지 (0.00%p)',
+                getLive: () => policyRateDataMap.KR
+            },
             DJI: {
                 title: '다우존스 산업평균 (Dow Jones)',
                 cnbcSymbol: '.DJI',
@@ -1513,6 +1553,33 @@
             if (!meta) return null;
             const pCfg = PERIOD_CONFIG[period] || PERIOD_CONFIG['1m'];
             const mult = (typeof meta.getMultiplier === 'function' ? meta.getMultiplier() : meta.multiplier) || 1;
+
+            // 중앙은행 기준금리 시계열 (NY Fed / BIS / 한국은행)
+            if (meta.isPolicyRate && meta.country) {
+                if (!policyRateHistoryMap[meta.country] || policyRateHistoryMap[meta.country].length === 0) {
+                    await fetchPolicyRates().catch(() => null);
+                }
+                const rawSeries = policyRateHistoryMap[meta.country] || [];
+                if (rawSeries.length > 0) {
+                    const cutoff = new Date();
+                    cutoff.setDate(cutoff.getDate() - pCfg.days);
+                    const cutoffStr = cutoff.toISOString().slice(0, 10);
+                    let filtered = rawSeries.filter(p => p.date >= cutoffStr);
+                    if (filtered.length < 2) filtered = rawSeries.slice(-Math.min(rawSeries.length, 5));
+                    const mapped = filtered.map(p => ({
+                        dateStr: p.dateStr,
+                        label: formatKoreanDateLabel(p.dateStr),
+                        value: p.value,
+                        open: p.value,
+                        high: p.value,
+                        low: p.value,
+                        close: p.value
+                    }));
+                    macroHistoryCache[cacheKey] = mapped;
+                    return mapped;
+                }
+                return null;
+            }
 
             let points = [];
             // 1순위: CNBC ts-api (CORS * 지원, 초고속, 일봉 OHLC 포함)
@@ -1946,8 +2013,9 @@
             });
 
             const live = meta.getLive ? meta.getLive() : null;
-            const isUp = (live && live.changeNum > 0);
-            const isDown = (live && live.changeNum < 0);
+            const signVal = meta.isPolicyRate ? (live?.chgVal || 0) : (live?.changeNum || 0);
+            const isUp = (live && signVal > 0);
+            const isDown = (live && signVal < 0);
 
             if (live && live.valText && live.valText !== '-') {
                 popValue.textContent = live.valText;
@@ -2565,6 +2633,9 @@
                 }));
             } catch (e) {}
 
+            // 한·미·일 공식 기준금리(정책금리) 병렬 조회
+            await fetchPolicyRates();
+
             // 지수 및 메인 전체 나열 뷰 즉시 갱신
             updateCurrentIndexDisplay(true);
             updateExpandedMacroView();
@@ -2573,6 +2644,58 @@
                 fetchedData.exchangeSource = '실시간 외환시장';
                 updateExchangeRateInfo(fetchedData.exchangeSource);
             }
+        }
+
+        async function fetchPolicyRates() {
+            const endpoints = ['/api/policy-rates', 'https://earnings.bad-none.workers.dev/api/policy-rates'];
+            for (const url of endpoints) {
+                try {
+                    const res = await fetchWithTimeout(url, { timeout: 4500 });
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json && json.ok && json.rates) {
+                            ['US', 'JP', 'KR'].forEach(c => {
+                                if (json.rates[c]) policyRateDataMap[c] = json.rates[c];
+                                if (json.history && Array.isArray(json.history[c])) policyRateHistoryMap[c] = json.history[c];
+                            });
+                            return true;
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            // 최후 백업: 브라우저에서 NY Fed EFFR 직접 조회 (CORS * 지원)
+            try {
+                const res = await fetchWithTimeout('https://markets.newyorkfed.org/api/rates/unsecured/effr/last/260.json', { timeout: 4000 });
+                if (res.ok) {
+                    const json = await res.json();
+                    const list = (json?.refRates || [])
+                        .filter(r => r.effectiveDate && (r.targetRateFrom != null || r.percentRate != null))
+                        .sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
+                    if (list.length > 0) {
+                        policyRateHistoryMap.US = list.map(r => {
+                            const hasRange = r.targetRateFrom != null && r.targetRateTo != null;
+                            const mid = hasRange ? (Number(r.targetRateFrom) + Number(r.targetRateTo)) / 2 : Number(r.percentRate);
+                            return {
+                                date: r.effectiveDate,
+                                dateStr: r.effectiveDate.replace(/-/g, ''),
+                                value: Number(mid.toFixed(4)),
+                                min: r.targetRateFrom != null ? Number(r.targetRateFrom) : mid,
+                                max: r.targetRateTo != null ? Number(r.targetRateTo) : mid
+                            };
+                        });
+                        const latest = policyRateHistoryMap.US[policyRateHistoryMap.US.length - 1];
+                        policyRateDataMap.US = {
+                            label: '미국 기준금리',
+                            valText: (latest.min !== latest.max) ? `${latest.min.toFixed(2)}~${latest.max.toFixed(2)}%` : `${latest.value.toFixed(2)}%`,
+                            rawVal: latest.value,
+                            chgVal: 0,
+                            changeNum: null
+                        };
+                    }
+                }
+            } catch (e) {}
+            return false;
         }
 
         async function getExchangeRate() {
