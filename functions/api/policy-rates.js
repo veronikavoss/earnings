@@ -1,5 +1,5 @@
 // Cloudflare Pages Functions - /api/policy-rates
-// 한·미·일 중앙은행 기준금리 실시간 & 1년 시계열 파서
+// 한·미·일 중앙은행 기준금리 실시간 & 5년 시계열 파서
 
 export async function onRequest(context) {
     const { request } = context;
@@ -15,15 +15,17 @@ export async function onRequest(context) {
     }
 
     try {
-        const start = new Date();
-        start.setFullYear(start.getFullYear() - 1);
+        const now = new Date();
+        const start = new Date(now);
+        start.setFullYear(start.getFullYear() - 5);
         const startStr = start.toISOString().slice(0, 10);
+        const endStr = now.toISOString().slice(0, 10);
 
         const [nyRes, bisRes, bokRes] = await Promise.allSettled([
-            fetch('https://markets.newyorkfed.org/api/rates/unsecured/effr/last/260.json', {
+            fetch(`https://markets.newyorkfed.org/api/rates/unsecured/effr/search.json?startDate=${startStr}&endDate=${endStr}`, {
                 headers: { 'Accept': 'application/json', 'User-Agent': 'EarningsViewer/1.0' }
             }).then(r => r.ok ? r.json() : null),
-            fetch(`https://stats.bis.org/api/v2/data/dataflow/BIS/WS_CBPOL/1.0/D.JP+KR?startPeriod=${startStr}&format=csv`, {
+            fetch(`https://stats.bis.org/api/v2/data/dataflow/BIS/WS_CBPOL/1.0/D.JP+KR?startPeriod=${startStr}&detail=dataonly&format=csv`, {
                 headers: { 'Accept': 'text/csv', 'User-Agent': 'EarningsViewer/1.0' }
             }).then(r => r.ok ? r.text() : null),
             fetch('https://www.bok.or.kr/portal/main/main.do', {
@@ -33,53 +35,45 @@ export async function onRequest(context) {
 
         const history = { US: [], JP: [], KR: [] };
         const rates = {};
-        const summarizeSeries = (series, isWithinDays = 7) => {
+        const summarizeSeries = (series) => {
             if (!series || series.length === 0) return null;
             const latest = series[series.length - 1];
-            let prevDistinctVal = latest.value;
-            let lastChangeDate = latest.date;
-            for (let i = series.length - 2; i >= 0; i--) {
-                if (Math.abs(series[i].value - latest.value) > 1e-6) {
-                    prevDistinctVal = series[i].value;
-                    lastChangeDate = series[i + 1].date;
+            const refDate = new Date(latest.date + 'T00:00:00Z');
+            refDate.setUTCDate(refDate.getUTCDate() - 30);
+            const monthAgoStr = refDate.toISOString().slice(0, 10);
+            let prevMonthVal = series[0].value;
+            for (let i = series.length - 1; i >= 0; i--) {
+                if (series[i].date <= monthAgoStr) {
+                    prevMonthVal = series[i].value;
                     break;
                 }
             }
-            const decisionDiff = Number((latest.value - prevDistinctVal).toFixed(4));
-            const ageDays = (Date.now() - new Date(lastChangeDate + 'T00:00:00Z').getTime()) / (1000 * 60 * 60 * 24);
-            const recentDiff = (Math.abs(decisionDiff) > 1e-6 && ageDays <= isWithinDays) ? decisionDiff : null;
-            return { latest, decisionDiff, recentDiff };
+            const momDiff = Number((latest.value - prevMonthVal).toFixed(4));
+            return { latest, momDiff };
         };
 
         if (nyRes.status === 'fulfilled' && nyRes.value && Array.isArray(nyRes.value.refRates)) {
             history.US = nyRes.value.refRates
-                .filter(r => r.effectiveDate && (r.targetRateFrom != null || r.percentRate != null))
+                .filter(r => r.effectiveDate && (r.targetRateTo != null || r.percentRate != null))
                 .sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate))
                 .map(r => {
-                    const hasRange = r.targetRateFrom != null && r.targetRateTo != null;
-                    const mid = hasRange ? (Number(r.targetRateFrom) + Number(r.targetRateTo)) / 2 : Number(r.percentRate);
+                    const topVal = r.targetRateTo != null ? Number(r.targetRateTo) : Number(r.percentRate);
                     return {
                         date: r.effectiveDate,
                         dateStr: r.effectiveDate.replace(/-/g, ''),
-                        value: Number(mid.toFixed(4)),
-                        min: r.targetRateFrom != null ? Number(r.targetRateFrom) : mid,
-                        max: r.targetRateTo != null ? Number(r.targetRateTo) : mid
+                        value: Number(topVal.toFixed(4))
                     };
                 });
             const sum = summarizeSeries(history.US);
             if (sum) {
-                const { latest, decisionDiff, recentDiff } = sum;
-                const valText = (latest.min !== latest.max)
-                    ? `${latest.min.toFixed(2)}~${latest.max.toFixed(2)}%`
-                    : `${latest.value.toFixed(2)}%`;
-                rates.US = { label: '미국 기준금리', valText, rawVal: latest.value, chgVal: decisionDiff, changeNum: recentDiff, effectiveDate: latest.date };
+                rates.US = { label: '미국 기준금리', valText: `${sum.latest.value.toFixed(2)}%`, rawVal: sum.latest.value, chgVal: sum.momDiff, changeNum: sum.momDiff, effectiveDate: sum.latest.date };
             }
         }
 
         if (bisRes.status === 'fulfilled' && typeof bisRes.value === 'string') {
             const parsed = { JP: [], KR: [] };
             for (const line of bisRes.value.split(/\r?\n/)) {
-                const m = line.match(/^D,(JP|KR),.*,(\d{4}-\d{2}-\d{2}),(-?\d+(?:\.\d+)?),/);
+                const m = line.match(/^D,(JP|KR),(?:.*?,)?(\d{4}-\d{2}-\d{2}),(-?\d+(?:\.\d+)?)/);
                 if (m) {
                     const v = parseFloat(m[3]);
                     if (!isNaN(v)) parsed[m[1]].push({ date: m[2], dateStr: m[2].replace(/-/g, ''), value: v });
@@ -105,9 +99,9 @@ export async function onRequest(context) {
         }
 
         const jpSum = summarizeSeries(history.JP);
-        if (jpSum) rates.JP = { label: '일본 기준금리', valText: `${jpSum.latest.value.toFixed(2)}%`, rawVal: jpSum.latest.value, chgVal: jpSum.decisionDiff, changeNum: jpSum.recentDiff, effectiveDate: jpSum.latest.date };
+        if (jpSum) rates.JP = { label: '일본 기준금리', valText: `${jpSum.latest.value.toFixed(2)}%`, rawVal: jpSum.latest.value, chgVal: jpSum.momDiff, changeNum: jpSum.momDiff, effectiveDate: jpSum.latest.date };
         const krSum = summarizeSeries(history.KR);
-        if (krSum) rates.KR = { label: '한국 기준금리', valText: `${krSum.latest.value.toFixed(2)}%`, rawVal: krSum.latest.value, chgVal: krSum.decisionDiff, changeNum: krSum.recentDiff, effectiveDate: krSum.latest.date };
+        if (krSum) rates.KR = { label: '한국 기준금리', valText: `${krSum.latest.value.toFixed(2)}%`, rawVal: krSum.latest.value, chgVal: krSum.momDiff, changeNum: krSum.momDiff, effectiveDate: krSum.latest.date };
 
         return new Response(JSON.stringify({ ok: true, rates, history }), {
             status: 200,
