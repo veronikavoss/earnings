@@ -200,7 +200,7 @@
             </div>
 
             <!-- 마우스 호버 / 클릭 미니 추세 차트 팝업 (Popover) -->
-            <div id="macroPopover" class="hidden absolute z-50 w-[320px] sm:w-[360px] bg-white border border-slate-300 rounded-xl shadow-2xl p-4 transition-opacity duration-150">
+            <div id="macroPopover" class="hidden absolute z-50 w-[332px] sm:w-[376px] bg-white border border-slate-300 rounded-xl shadow-2xl p-3.5 sm:p-4 transition-opacity duration-150">
                 <!-- 상단 화살표 포인터 -->
                 <div id="macroPopoverArrow" class="w-3.5 h-3.5 bg-white border-l border-t border-slate-300 transform rotate-45 absolute -top-2 left-20"></div>
                 <!-- 1행: 타이틀 & 차트 모드 토글 / 기간 배지 -->
@@ -230,12 +230,13 @@
                 <!-- 4행: 기간 내 최저/최고 & 기간 선택 탭 -->
                 <div class="flex items-center justify-between gap-1 pt-2">
                     <span id="popMinMax" class="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">최저 - · 최고 -</span>
-                    <div class="flex items-center gap-1 shrink-0" id="popPeriodTabs">
-                        <button type="button" data-period="1w" class="pop-period-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">1주</button>
-                        <button type="button" data-period="1m" class="pop-period-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-600 text-white transition-colors">1개월</button>
-                        <button type="button" data-period="3m" class="pop-period-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">3개월</button>
-                        <button type="button" data-period="1y" class="pop-period-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">1년</button>
-                        <button type="button" data-period="5y" class="pop-period-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">5년</button>
+                    <div class="flex items-center gap-0.5 sm:gap-1 shrink-0" id="popPeriodTabs">
+                        <button type="button" data-period="1w" class="pop-period-btn text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">1주</button>
+                        <button type="button" data-period="1m" class="pop-period-btn text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded bg-blue-600 text-white transition-colors">1개월</button>
+                        <button type="button" data-period="3m" class="pop-period-btn text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">3개월</button>
+                        <button type="button" data-period="1y" class="pop-period-btn text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">1년</button>
+                        <button type="button" data-period="3y" class="pop-period-btn text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">3년</button>
+                        <button type="button" data-period="5y" class="pop-period-btn text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">5년</button>
                     </div>
                 </div>
             </div>
@@ -1530,6 +1531,7 @@
             '1m': { days: 34, badge: '최근 1개월 추세', yahooRange: '1mo' },
             '3m': { days: 95, badge: '최근 3개월 추세', yahooRange: '3mo' },
             '1y': { days: 366, badge: '최근 1년 추세', yahooRange: '1y' },
+            '3y': { days: 1096, badge: '최근 3년 추세', yahooRange: '5y' },
             '5y': { days: 1827, badge: '최근 5년 추세', yahooRange: '5y' }
         };
 
@@ -1556,7 +1558,7 @@
             const meta = getMacroItemMeta(itemKey);
             if (!meta) return null;
             const pCfg = PERIOD_CONFIG[period] || PERIOD_CONFIG['1m'];
-            const includeYear = (period === '1y' || period === '5y');
+            const includeYear = (period === '1y' || period === '3y' || period === '5y');
             const mult = (typeof meta.getMultiplier === 'function' ? meta.getMultiplier() : meta.multiplier) || 1;
 
             // 중앙은행 기준금리 시계열 (NY Fed / BIS / 한국은행 - 최대 5년)
@@ -1637,9 +1639,17 @@
                         const highs = q0.high || [];
                         const lows = q0.low || [];
                         const closes = q0.close || [];
+                        const cutoffYmd = (() => {
+                            const d = new Date();
+                            d.setDate(d.getDate() - pCfg.days);
+                            return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+                        })();
                         ts.forEach((t, idx) => {
                             const c = closes[idx];
                             if (c !== null && c !== undefined && !isNaN(c)) {
+                                const dt = new Date(t * 1000);
+                                const ym = `${dt.getFullYear()}${String(dt.getMonth() + 1).padStart(2, '0')}${String(dt.getDate()).padStart(2, '0')}`;
+                                if (period === '3y' && ym < cutoffYmd) return;
                                 const o = opens[idx];
                                 const h = highs[idx];
                                 const l = lows[idx];
@@ -1647,8 +1657,6 @@
                                 const openVal = (o !== null && o !== undefined && !isNaN(o)) ? o * mult : closeVal;
                                 const highVal = (h !== null && h !== undefined && !isNaN(h)) ? h * mult : Math.max(openVal, closeVal);
                                 const lowVal = (l !== null && l !== undefined && !isNaN(l)) ? l * mult : Math.min(openVal, closeVal);
-                                const dt = new Date(t * 1000);
-                                const ym = `${dt.getFullYear()}${String(dt.getMonth() + 1).padStart(2, '0')}${String(dt.getDate()).padStart(2, '0')}`;
                                 points.push({
                                     dateStr: ym,
                                     label: formatKoreanDateLabel(ym, includeYear),
@@ -2012,9 +2020,9 @@
 
             popPeriodBtns.forEach(btn => {
                 if (btn.dataset.period === activePopupPeriod) {
-                    btn.className = 'pop-period-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-600 text-white transition-colors';
+                    btn.className = 'pop-period-btn text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded bg-blue-600 text-white transition-colors';
                 } else {
-                    btn.className = 'pop-period-btn text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors';
+                    btn.className = 'pop-period-btn text-[10px] font-semibold px-1 sm:px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors';
                 }
             });
 
